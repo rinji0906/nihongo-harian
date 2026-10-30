@@ -182,6 +182,52 @@ details[open]>summary.unit-head h2::before{transform:rotate(90deg)}
 .talkbar textarea{flex:1;min-width:0;font:inherit;font-size:16px;font-family:var(--f-jp);resize:none;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);color:var(--fg);max-height:120px}
 .mic.small{width:46px;height:46px;flex:none}
 .mic.small svg{width:22px;height:22px}
+:root{--gold:#D9A21B}
+.lv{background:var(--ai-soft);color:var(--ai)}
+.xpbar{position:relative;height:22px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.xpbar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--gold),var(--shu));border-radius:99px;transition:width .4s}
+.xpbar span{position:relative;display:block;text-align:center;font-size:12px;font-weight:700;line-height:22px;color:var(--fg)}
+.path{display:grid;gap:4px}
+.path-unit{justify-self:center;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.path-row{display:flex;align-items:center;gap:12px;transform:translateX(var(--off));justify-content:center;min-height:70px}
+.node{width:58px;height:58px;border-radius:50%;border:0;display:grid;place-items:center;font-size:22px;font-weight:900;flex:none;box-shadow:0 5px 0 var(--line)}
+.node.done{background:var(--good-soft);color:var(--good);box-shadow:0 5px 0 var(--good)}
+.node.now{width:68px;height:68px;background:var(--ai);color:var(--bg);box-shadow:0 6px 0 var(--fg);animation:bob 1.6s ease-in-out infinite}
+.node.todo{background:var(--surface-2);color:var(--muted)}
+.node:active{transform:translateY(4px);box-shadow:0 1px 0 var(--line)}
+.node-label{font-size:13px;color:var(--muted);max-width:140px;line-height:1.3}
+.node-tip{display:grid;background:var(--ai-soft);color:var(--ai);border-radius:12px;padding:8px 12px;font-size:13px;max-width:170px}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.sheet{display:grid;gap:8px;border-radius:16px;padding:14px;animation:up .2s ease-out}
+.sheet.right{background:var(--good-soft);color:var(--good)}
+.sheet.wrong{background:var(--bad-soft);color:var(--bad)}
+.sheet b{font-size:18px}
+.sheet .jp{color:var(--fg)}
+.go-ok{background:var(--good);color:var(--bg)}
+.go-bad{background:var(--bad);color:var(--bg)}
+.combo{font-size:13px;font-weight:800;color:var(--shu);border:1.5px solid var(--shu);border-radius:99px;padding:2px 10px}
+@keyframes up{from{transform:translateY(16px);opacity:.3}}
+.match{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.match>div{display:grid;gap:8px}
+.mt{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 8px;font-weight:600;font-size:15px;min-height:54px;box-shadow:0 3px 0 var(--line)}
+.mt.jp{font-size:19px}
+.mt.picked{border-color:var(--ai);background:var(--ai-soft);color:var(--ai)}
+.mt.solved{opacity:.35;box-shadow:none;border-color:var(--good);background:var(--good-soft)}
+.shake{animation:shake .35s;border-color:var(--bad)!important;background:var(--bad-soft)!important}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.buildline{min-height:58px;border-bottom:2px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 0}
+.bank{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.tile{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-size:17px;font-weight:600;box-shadow:0 3px 0 var(--line)}
+.tile.used{visibility:hidden}
+.bigspeak{width:96px;height:96px;border-radius:24px;border:0;background:var(--ai);color:var(--bg);display:grid;place-items:center;box-shadow:0 6px 0 var(--fg)}
+.bigspeak:active{transform:translateY(4px);box-shadow:0 2px 0 var(--fg)}
+.result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.result-stats div{display:grid;justify-items:center;border:1.5px solid var(--line);border-radius:12px;padding:10px 4px}
+.result-stats b{font-size:22px;color:var(--shu)}
+.result-stats span{font-size:12px;color:var(--muted)}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+.opt{box-shadow:0 3px 0 var(--line)}
+.opt:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--line)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 @media (max-width:360px){.today{grid-template-columns:1fr;justify-items:center}.today-info{justify-items:center;text-align:center}}
 </style>
@@ -299,7 +345,7 @@ const PLAN=(()=>{const u=id=>LESSONS.filter(l=>l.unit===id&&!l.soon);
    DATA — disimpan di perangkat dan (bila tersedia) di akun.
    ============================================================ */
 const LS_KEY="nihongo-harian-v1";
-const blank=()=>({v:1,goalMin:30,days:{},lessons:{},items:{},srs:{},planStart:null,updatedAt:0});
+const blank=()=>({v:1,xp:0,goalMin:30,days:{},lessons:{},items:{},srs:{},planStart:null,updatedAt:0});
 let S=blank();
 try{const raw=localStorage.getItem(LS_KEY); if(raw) S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
 
@@ -311,13 +357,14 @@ const dayRec=k=>S.days[k]||(S.days[k]={sec:0,right:0,wrong:0,lessons:[]});
 function merge(a,b){ // gabung dua salinan: ambil nilai terbesar, tidak ada yang hilang
   const m=blank(); m.goalMin=(a.updatedAt>=b.updatedAt?a:b).goalMin||30;
   m.updatedAt=Math.max(a.updatedAt||0,b.updatedAt||0);
+  m.xp=Math.max(a.xp||0,b.xp||0);
   m.planStart=[a.planStart,b.planStart].filter(Boolean).sort()[0]||null;
   for(const k of new Set([...Object.keys(a.srs||{}),...Object.keys(b.srs||{})])){
     const x=a.srs?.[k],y=b.srs?.[k]; m.srs[k]=!x?y:!y?x:((x.t||0)>=(y.t||0)?x:y);
   }
   for(const k of new Set([...Object.keys(a.days||{}),...Object.keys(b.days||{})])){
     const x=a.days?.[k]||{},y=b.days?.[k]||{};
-    m.days[k]={sec:Math.max(x.sec||0,y.sec||0),right:Math.max(x.right||0,y.right||0),wrong:Math.max(x.wrong||0,y.wrong||0),sRight:Math.max(x.sRight||0,y.sRight||0),sWrong:Math.max(x.sWrong||0,y.sWrong||0),lessons:[...new Set([...(x.lessons||[]),...(y.lessons||[])])]};
+    m.days[k]={sec:Math.max(x.sec||0,y.sec||0),right:Math.max(x.right||0,y.right||0),wrong:Math.max(x.wrong||0,y.wrong||0),sRight:Math.max(x.sRight||0,y.sRight||0),sWrong:Math.max(x.sWrong||0,y.sWrong||0),xp:Math.max(x.xp||0,y.xp||0),talk:Math.max(x.talk||0,y.talk||0),lessons:[...new Set([...(x.lessons||[]),...(y.lessons||[])])]};
   }
   for(const k of new Set([...Object.keys(a.lessons||{}),...Object.keys(b.lessons||{})])){
     const x=a.lessons?.[k]||{},y=b.lessons?.[k]||{};
@@ -429,6 +476,41 @@ function planInfo(){
   return {week,done,target,total:PLAN.length,diff:done<due?done-due:Math.max(0,done-target),thisWeek:Math.max(0,target-done),end,todo:PLAN.filter(l=>!S.lessons[l.id]).slice(0,Math.max(0,target-done)||Math.min(3,left))};
 }
 
+/* GAME: XP, level, suara efek, getar, konfeti */
+const levelOf=xp=>Math.floor(Math.sqrt((xp||0)/40))+1;
+const xpFor=l=>40*(l-1)*(l-1);
+function award(n){ S.xp=(S.xp||0)+n; const d=dayRec(todayKey()); d.xp=(d.xp||0)+n; if(Q) Q.xp=(Q.xp||0)+n; }
+let actx=null;
+function sfx(kind){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const notes={ok:[[660,0],[880,.09]],bad:[[196,0],[147,.12]],done:[[523,0],[659,.1],[784,.2],[1047,.3]],tap:[[520,0]],combo:[[784,0],[988,.07],[1319,.14]]}[kind]||[];
+    const t0=actx.currentTime;
+    notes.forEach(([f,dt])=>{const o=actx.createOscillator(),g=actx.createGain(); o.type=kind==="bad"?"square":"triangle"; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t0+dt); g.gain.exponentialRampToValueAtTime(kind==="bad"?0.08:0.18,t0+dt+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t0+dt+(kind==="tap"?0.06:0.18));
+      o.connect(g).connect(actx.destination); o.start(t0+dt); o.stop(t0+dt+0.25);});
+  }catch(e){}
+  if(kind==="bad") try{navigator.vibrate&&navigator.vibrate(60);}catch(e){}
+}
+function confetti(){
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c=document.createElement("canvas"); c.className="confetti"; document.body.appendChild(c);
+  const W=c.width=innerWidth, H=c.height=innerHeight, x=c.getContext("2d");
+  const cs=getComputedStyle(document.documentElement), cols=["--ai","--shu","--good","--gold"].map(v=>cs.getPropertyValue(v).trim()||"#c33");
+  const P=[...Array(90)].map(()=>({x:W/2+(Math.random()-.5)*80,y:H*.35,vx:(Math.random()-.5)*9,vy:-Math.random()*11-3,r:Math.random()*6+4,c:cols[Math.floor(Math.random()*4)],a:Math.random()*6}));
+  let t=0; (function f(){ x.clearRect(0,0,W,H); P.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.a+=.2; x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);x.restore();}); if(++t<110) requestAnimationFrame(f); else c.remove(); })();
+}
+
+/* Peta jalur: beberapa pelajaran di sekitar posisi sekarang, berkelok seperti jalan setapak */
+function pathMap(){
+  const cur=Math.max(0,PLAN.findIndex(l=>!S.lessons[l.id])); const from=Math.max(0,cur-2), list=PLAN.slice(from,from+8);
+  let lastUnit=null;
+  const nodes=list.map((l,i)=>{const idx=from+i, done=!!S.lessons[l.id], now=idx===cur; const off=Math.round(Math.sin(idx*0.9)*34);
+    const unit=COURSE.find(u=>u.id===l.unit); const head=l.unit!==lastUnit?`<div class="path-unit">${esc(unit.title)}</div>`:""; lastUnit=l.unit;
+    return `${head}<div class="path-row" style="--off:${off}px"><button class="node ${done?"done":now?"now":"todo"}" data-lesson="${l.id}" aria-label="${esc(l.title)}${done?" (selesai)":""}"><span class="jp">${done?"済":l.glyph}</span></button>${now?`<div class="node-tip"><b>${esc(l.title)}</b><span>Mulai · +${l.items.length*10} XP</span></div>`:`<span class="node-label">${esc(l.title)}</span>`}</div>`;}).join("");
+  return `<section class="card path"><div class="row between"><h2>Jalur belajar</h2><span class="muted" style="font-size:13px">${PLAN.filter(l=>S.lessons[l.id]).length}/${PLAN.length}</span></div>${nodes}</section>`;
+}
+
 /* ============================================================
    TAMPILAN
    ============================================================ */
@@ -454,7 +536,8 @@ function viewHome(){
     return `<div class="day"><span class="stamp ${cls} ${k===todayKey()?"now":""}" aria-label="${id}: ${Math.round(s/60)} menit">済</span>${id}<span class="jp">${jp}</span></div>`;}).join("");
   return `
   <header class="row between"><div><div class="eyebrow">${now.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"})}</div><h1>こんにちは!</h1></div>
-    <span class="chip shu num" title="Hari berturut-turut mencapai target">${st} hari beruntun</span></header>
+    <div style="display:grid;gap:6px;justify-items:end"><span class="chip shu num" title="Hari berturut-turut mencapai target">${st} hari beruntun</span><span class="chip num lv">Lv ${levelOf(S.xp)} · ${S.xp||0} XP</span></div></header>
+  <div class="xpbar" title="XP menuju level berikutnya"><i style="width:${Math.round(((S.xp||0)-xpFor(levelOf(S.xp)))/(xpFor(levelOf(S.xp)+1)-xpFor(levelOf(S.xp)))*100)}%"></i><span>${(S.days[todayKey()]?.xp||0)} XP hari ini · ${xpFor(levelOf(S.xp)+1)-(S.xp||0)} XP lagi ke Lv ${levelOf(S.xp)+1}</span></div>
   <section class="card today">
     <div class="ring"><svg viewBox="0 0 132 132" aria-hidden="true"><circle cx="66" cy="66" r="56" fill="none" stroke="var(--surface-2)" stroke-width="12"/>
       <circle id="ringArc" cx="66" cy="66" r="56" fill="none" stroke="var(--ai)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${RING_C}" stroke-dashoffset="${RING_C}"/></svg>
@@ -464,7 +547,7 @@ function viewHome(){
       <span class="muted" style="font-size:12px">Timer juga berjalan otomatis saat pelajaran dibuka.</span></div>
   </section>
   <section class="card" style="display:grid;gap:12px"><div class="row between"><h2>Minggu ini</h2><span class="muted" style="font-size:13px">Cap 済 = target tercapai</span></div><div class="week">${week}</div></section>
-  <button class="action" data-lesson="${nl.id}"><span class="glyph">${nl.glyph}</span><span class="txt"><span class="eyebrow">${S.lessons[nl.id]?"Ulangi pelajaran":"Lanjutkan"}</span><b>${esc(nl.title)}</b><span class="muted" style="font-size:13px">${nl.items.length} materi · sekitar 5 menit</span></span><span class="go">›</span></button>
+  ${pathMap()}
   ${srsCard()}
   <button class="action" data-act="review"><span class="glyph" style="background:var(--bad-soft);color:var(--bad)">復</span><span class="txt"><span class="eyebrow">Ulangi</span><b>${weak?weak+" materi perlu dilatih lagi":"Belum ada materi yang sering salah"}</b><span class="muted" style="font-size:13px">Materi yang paling sering salah muncul lebih dulu</span></span><span class="go">›</span></button>`;
 }
@@ -640,18 +723,54 @@ function makeQuiz(item){
   return {type:"quiz",item,mode,reverse:mode==="reverse",answer:label(item),options:shuffle([label(item),...distract]),jpOpts:mode==="reverse"||mode==="exread"};
 }
 const canSpeak=l=>l.kind==="kana"||l.kind==="vocab";
+function makeMatch(items){
+  const its=shuffle(items).slice(0,5).map(x=>ITEMS[x.id]);
+  const right=x=>x.kind==="kana"?x.romaji:x.arti;
+  return {type:"match",item:{jp:""},items:its,left:shuffle(its.map(x=>x.id)),right:shuffle(its.map(x=>x.id)),label:right,solved:[],pick:null,bad:null,miss:{}};
+}
+function makeListen(item){
+  const pool=shuffle(Object.values(ITEMS).filter(x=>x.kind===item.kind&&x.id!==item.id&&(item.kind!=="kana"||x.id[0]===item.id[0])));
+  const near=pool.filter(x=>x.lesson===item.lesson), far=pool.filter(x=>x.lesson!==item.lesson);
+  const d=[...near,...far].map(x=>x.jp).filter((v,i,a)=>v!==item.jp&&a.indexOf(v)===i).slice(0,3);
+  return {type:"quiz",mode:"listen",item,answer:item.jp,options:shuffle([item.jp,...d]),jpOpts:true};
+}
+function tokenize(sentence){
+  const out=[];
+  sentence.replace(/[(（][^)）]*[)）]/g,"").trim().split(/\s+/).forEach(ch=>{
+    let end=""; if(/[。？！?]$/.test(ch)){ end=ch.slice(-1); ch=ch.slice(0,-1); }
+    const c=ch.match(/^(.{2,}?)(です|でした|ではありません|じゃありません|ます|ました|ません|ませんでした)$/);
+    const w=c?c[1]:ch;
+    const m=w.match(/^(.+?)(は|が|を|に|へ|で|も|の|と|から|より)$/);
+    if(m&&m[1].length>1&&!/^(これ|それ|あれ|どれ)$/.test(w)) out.push(m[1],m[2]); else out.push(w);
+    if(c) out.push(c[2]); if(end) out.push(end);
+  });
+  return out.filter(Boolean);
+}
+function makeBuild(item){
+  const full=item.jp.replace("＿",item.answer), tokens=tokenize(full);
+  if(tokens.length<3) return null;
+  const extra=item.distract.filter(d=>!tokens.includes(d)&&d.length<=6).slice(0,2);
+  const bank=shuffle([...tokens.map((t,i)=>({t,k:"a"+i})),...extra.map((t,i)=>({t,k:"d"+i}))]);
+  return {type:"build",item,tokens,bank,picked:[],answered:null};
+}
 function speakSteps(items){ return SR&&!micBlocked&&items.length&&canSpeak(ITEMS[items[0].id]) ? shuffle(items).map(x=>({type:"speak",item:ITEMS[x.id]})) : []; }
-function newQ(o){return Object.assign({i:0,right:0,wrong:0,sRight:0,sWrong:0,answered:null},o);}
+function newQ(o){return Object.assign({i:0,right:0,wrong:0,sRight:0,sWrong:0,answered:null,combo:0,best:0,xp:0},o);}
 function startLesson(id){
   const l=LESSONS.find(x=>x.id===id); if(!l||l.soon) return;
   const learn=l.kind==="grammar"?[{type:"explain",item:{jp:l.pattern}}]:l.items.map(item=>({type:"learn",item:ITEMS[item.id]}));
-  const quiz=shuffle(l.items).map(x=>makeQuiz(ITEMS[x.id]));
+  let quiz=shuffle(l.items).map(x=>makeQuiz(ITEMS[x.id]));
+  if(l.kind==="grammar"){ const b=shuffle(l.items).slice(0,2).map(x=>makeBuild(ITEMS[x.id])).filter(Boolean); quiz=[...quiz.slice(0,3),...b,...quiz.slice(3)]; }
+  else {
+    // ganti sebagian kuis dengan soal "dengar & pilih", lalu tambahkan satu soal "pasangkan"
+    if(l.kind==="kana"||l.kind==="vocab") quiz=quiz.map((q,i)=>i%3===1?makeListen(q.item):q);
+    quiz.splice(Math.min(3,quiz.length),0,makeMatch(l.items));
+  }
   Q=newQ({mode:"lesson",lesson:l,steps:[...learn,...quiz,...speakSteps(l.items)]});
   openLayer();
 }
 function startSRS(){
   const ids=srsDue().slice(0,20); if(!ids.length){toast("Tidak ada kartu yang jatuh tempo hari ini."); return;}
-  Q=newQ({mode:"srs",lesson:{title:"Kartu SRS hari ini"},steps:shuffle(ids).map(id=>makeQuiz(ITEMS[id]))});
+  Q=newQ({mode:"srs",lesson:{title:"Kartu SRS hari ini"},steps:shuffle(ids).map((id,i)=>{const it=ITEMS[id]; return i%4===2&&(it.kind==="vocab"||it.kind==="kana")?makeListen(it):makeQuiz(it);})});
   openLayer();
 }
 function startSpeak(id){
@@ -706,13 +825,17 @@ function recordAnswer(item,ok){
   s.last=Date.now(); const d=dayRec(todayKey()); ok?d.right++:d.wrong++;
   if(Q.mode==="srs") srsAnswer(item.id,ok);
   else if(!ok&&S.srs[item.id]) srsAnswer(item.id,false);
-  ok?Q.right++:Q.wrong++; save();
+  ok?Q.right++:Q.wrong++;
+  if(ok){ Q.combo++; Q.best=Math.max(Q.best,Q.combo); award(10+Math.min(Q.combo-1,5)*2); sfx(Q.combo>0&&Q.combo%5===0?"combo":"ok"); }
+  else { Q.combo=0; sfx("bad"); }
+  save();
 }
 function finishTalk(){
   const turns=Q.msgs.filter(m=>m.role==="user").length;
   if(turns){ const d=dayRec(todayKey()); d.talk=(d.talk||0)+1; save(true); }
   const fixes=Q.msgs.filter(m=>m.role==="assistant"&&m.data.correction&&m.data.correction.right).map(m=>m.data.correction);
-  Q.summary={turns,fixes}; Q.done=turns?Math.round((turns-fixes.length)/turns*100):0; renderLayer();
+  if(turns) award(turns*5);
+  Q.summary={turns,fixes}; Q.done=turns?Math.round((turns-fixes.length)/turns*100):0; renderLayer(); if(turns){sfx("done"); confetti();}
 }
 function finish(){
   const total=Q.right+Q.wrong, sTotal=Q.sRight+Q.sWrong;
@@ -724,7 +847,8 @@ function finish(){
     if(!S.planStart) S.planStart=todayKey();
     srsAdd(Q.lesson.items.map(x=>x.id));
   }
-  save(true); Q.done=pct; renderLayer();
+  if(Q.mode!=="talk"){ award(Q.mode==="lesson"?20+(pct===100?10:0):5); }
+  save(true); Q.done=pct; renderLayer(); sfx("done"); if(pct>=60) confetti();
 }
 
 function speakBody(st){
@@ -742,6 +866,7 @@ function speakBody(st){
   <div style="display:grid;justify-items:center"><button class="mic ${st.listening?"on":""}" data-act="listen" ${micBlocked||st.listening?"disabled":""} aria-label="Tekan untuk bicara">${MIC_SVG}</button></div>
   ${status}`;
 }
+const SPEAKER_SVG=`<svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 const MIC_SVG=`<svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 
 function tableRows(rows){ // susun seperti tabel gojūon: や _ ゆ _ よ, わ _ _ _ を, lalu ん
@@ -766,16 +891,17 @@ function renderLayer(){
     const parts=[]; if(Q.right+Q.wrong) parts.push(`Kuis: ${Q.right} benar · ${Q.wrong} salah`); if(Q.sRight+Q.sWrong) parts.push(`Bicara: ${Q.sRight} dari ${Q.sRight+Q.sWrong} langsung tepat`);
     if(Q.mode==="talk"){
       const {turns,fixes}=Q.summary;
-      body=`<div class="result"><div class="hanko">話</div><h2>${turns} kali kamu berbicara</h2><p class="muted" style="margin:0">${fixes.length?`${fixes.length} koreksi untuk dipelajari:`:"Tidak ada koreksi. よくできました!"}</p></div>
+      body=`<div class="result-stats"><div><b class="num">+${Q.xp||0}</b><span>XP</span></div><div><b class="num">${Q.done}%</b><span>Tepat</span></div><div><b class="num">${Q.best||0}</b><span>Combo terbaik</span></div></div>
+    <div class="result"><div class="hanko">話</div><h2>${turns} kali kamu berbicara</h2><p class="muted" style="margin:0">${fixes.length?`${fixes.length} koreksi untuk dipelajari:`:"Tidak ada koreksi. よくできました!"}</p></div>
       ${fixes.map(f=>`<div class="corr"><div>${f.wrong?`<s>${esc(f.wrong)}</s> → `:""}<b class="jp">${esc(f.right)}</b></div><div>${esc(f.explain||"")}</div></div>`).join("")}`;
       foot=`<div style="display:grid;gap:10px"><button class="btn block" data-act="talk" data-scene="${Q.scene.id}">Mulai lagi</button><button class="btn primary block" data-act="close">Selesai</button></div>`;
     } else
-    body=`<div class="result"><div class="hanko">${Q.done>=60?"済":"復"}</div><div class="score num">${Q.done}%</div><h2>${msg}</h2>${parts.map(p=>`<p class="muted" style="margin:0">${p}</p>`).join("")}${Q.wrong?`<p class="muted" style="margin:0">Jawaban kuis yang salah otomatis masuk menu Ulangi.</p>`:""}</div>`;
+    body=`<div class="result"><div class="hanko">${Q.done>=60?"済":"復"}</div><div class="result-stats" style="width:100%"><div><b class="num">+${Q.xp||0}</b><span>XP</span></div><div><b class="num">${Q.best||0}</b><span>Combo terbaik</span></div><div><b class="num">Lv ${levelOf(S.xp)}</b><span>Level</span></div></div><div class="score num">${Q.done}%</div><h2>${msg}</h2>${parts.map(p=>`<p class="muted" style="margin:0">${p}</p>`).join("")}${Q.wrong?`<p class="muted" style="margin:0">Jawaban kuis yang salah otomatis masuk menu Ulangi.</p>`:""}</div>`;
     const again=Q.mode==="lesson"?`<button class="btn block" data-act="again">Ulangi pelajaran ini</button>`:Q.mode==="srs"?(srsDue().length?`<button class="btn block" data-act="srs">Lanjut kartu berikutnya (${srsDue().length})</button>`:""):Q.mode==="speak"?`<button class="btn block" data-act="again-speak">Latihan bicara lagi</button>`:`<button class="btn block" data-act="again-review">Latihan lagi</button>`;
     foot=`<div style="display:grid;gap:10px">${again}<button class="btn primary block" data-act="close">Selesai</button></div>`;
   } else {
     const st=Q.steps[Q.i], it=st.item, isWord=it.jp.length>1, nextType=Q.steps[Q.i+1]?.type;
-    const nextLabel=Q.i===n-1?"Lihat hasil":nextType!==st.type?(nextType==="quiz"?"Mulai kuis":"Mulai latihan bicara"):"Berikutnya";
+    const nextLabel=Q.i===n-1?"Lihat hasil":nextType!==st.type?(nextType==="speak"?"Mulai latihan bicara":st.type==="learn"||st.type==="explain"?"Mulai kuis":"Lanjut"):"Berikutnya";
     if(st.type==="explain"){
       const l=Q.lesson;
       body=`<div class="eyebrow">Tata bahasa · pola kalimat</div>
@@ -795,6 +921,23 @@ function renderLayer(){
         <button class="speak" data-say="${esc(it.jp)}">Dengar ▸</button></div>`;
       }
       foot=`<button class="btn primary block" data-act="next">${nextLabel}</button>`;
+    } else if(st.type==="match"){
+      body=`<div class="eyebrow">Pasangkan · ketuk satu di kiri, lalu pasangannya di kanan</div>
+      <div class="match"><div>${st.left.map(id=>{const it=ITEMS[id], sv=st.solved.includes(id);
+        return `<button class="mt jp ${sv?"solved":""} ${st.pick===id?"picked":""} ${st.bad&&st.bad[0]===id?"shake":""}" data-ml="${id}" ${sv?"disabled":""}>${it.jp}</button>`;}).join("")}</div>
+      <div>${st.right.map(id=>{const it=ITEMS[id], sv=st.solved.includes(id);
+        return `<button class="mt ${sv?"solved":""} ${st.bad&&st.bad[1]===id?"shake":""}" data-mr="${id}" ${sv?"disabled":""}>${esc(st.label(it))}</button>`;}).join("")}</div></div>`;
+      const fin=st.solved.length===st.items.length;
+      foot=fin?`<div class="sheet right"><b>Semua pasangan cocok!</b><button class="btn block go-ok" data-act="next">${nextLabel}</button></div>`:`<button class="btn block" disabled>Pasangkan semua dulu</button>`;
+    } else if(st.type==="build"){
+      const it=st.item, a=st.answered;
+      body=`<div class="eyebrow">Susun kalimat · ketuk potongan sesuai urutan</div>
+      <div class="flash" style="justify-items:stretch;text-align:left"><div style="font-size:18px;font-weight:700">${esc(it.arti)}</div></div>
+      <div class="buildline">${st.picked.map((k,i)=>{const t=st.bank.find(x=>x.k===k).t; return `<button class="tile jp" data-unpick="${i}" ${a?"disabled":""}>${esc(t)}</button>`;}).join("")||'<span class="muted">Ketuk potongan di bawah</span>'}</div>
+      <div class="bank">${st.bank.map(x=>`<button class="tile jp ${st.picked.includes(x.k)?"used":""}" data-pick="${x.k}" ${st.picked.includes(x.k)||a?"disabled":""}>${esc(x.t)}</button>`).join("")}</div>`;
+      const full=st.tokens.join(" ");
+      foot=a?`<div class="sheet ${a==="ok"?"right":"wrong"}"><b>${a==="ok"?"Benar!":"Belum tepat."}</b><div class="jp">${esc(full)}</div><button class="btn block ${a==="ok"?"go-ok":"go-bad"}" data-act="next">${nextLabel}</button></div>`
+        :`<button class="btn primary block" data-act="check-build" ${st.picked.length?"":"disabled"}>Periksa</button>`;
     } else if(st.type==="speak"){
       body=speakBody(st);
       const tried=st.ok!=null||micBlocked;
@@ -804,6 +947,7 @@ function renderLayer(){
       const reading=it.kana&&it.kana!==it.jp&&m!=="reverse"?`<div class="reading jp">${esc(it.kana)}</div>`:"";
       let prompt, ask, sayText=it.jp;
       if(m==="gram"){ prompt=`<div class="jp" style="font-size:22px;font-weight:700;line-height:1.6">${esc(it.jp).replace("＿","<span class=\"blank\">＿＿</span>")}</div><div class="muted">${esc(it.arti)}</div>`; ask="Lengkapi kalimatnya"; sayText=null; }
+      else if(m==="listen"){ prompt=`<button class="bigspeak" data-say="${esc(it.jp)}" aria-label="Putar suara">${SPEAKER_SVG}</button><div class="muted" style="font-size:13px">Ketuk untuk mendengar lagi</div>`; ask="Dengar, lalu pilih yang kamu dengar"; sayText=null; }
       else if(m==="reverse"){ prompt=`<div style="font-size:24px;font-weight:700">${esc(it.arti)}</div>`; ask="Pilih bahasa Jepangnya"; sayText=null; }
       else if(m==="exread"){ prompt=`<div class="glyph word">${esc(it.ex)}</div><div class="muted">${esc(it.exArti)}</div>`; ask="Bagaimana cara membacanya?"; sayText=null; }
       else { prompt=`${reading}<div class="glyph ${isWord?"word":""}">${it.jp}</div>`; ask=it.kind==="kana"?"Bagaimana cara membaca huruf ini?":"Apa artinya?"; if(it.kind==="kanji") sayText=null; }
@@ -811,10 +955,14 @@ function renderLayer(){
       body=`<div class="eyebrow">${Q.mode==="srs"?"Kartu SRS":"Kuis"} · ${ask}</div><div class="flash">${prompt}${sayText?`<button class="speak" data-say="${esc(sayText)}">Dengar ▸</button>`:""}</div>
       <div class="opts">${st.options.map(o=>{let c=""; if(a){ if(o===st.answer)c="right"; else if(o===a)c="wrong"; }
         return `<button class="opt ${st.jpOpts?"jp":""} ${o.length>10?"long":""} ${c}" data-opt="${esc(o)}" ${a?"disabled":""}>${esc(o)}</button>`;}).join("")}</div>
-      ${a?`<div class="feedback ${a===st.answer?"right":"wrong"}">${a===st.answer?"Benar! "+(m==="gram"?fix:""):"Belum tepat. "+fix}</div>`:""}`;
-      foot=`<button class="btn primary block" data-act="next" ${a?"":"disabled"}>${nextLabel}</button>`;
+`;
+      const ok=a===st.answer, cheer=["Benar!","Mantap!","すごい!","Hebat!","Tepat sekali!"][Q.right%5];
+      foot=a?`<div class="sheet ${ok?"right":"wrong"}"><div class="row between"><b>${ok?cheer:"Belum tepat"}</b>${ok&&Q.combo>=3?`<span class="combo">${Q.combo} beruntun</span>`:""}</div>${ok?(m==="gram"||m==="listen"?`<div class="jp">${m==="listen"?fix:fix}</div>`:""):`<div>Jawaban: <span class="jp">${fix}</span></div>`}<button class="btn block ${ok?"go-ok":"go-bad"}" data-act="next">${nextLabel}</button></div>`
+        :`<button class="btn block" disabled>Pilih jawaban</button>`;
     }
   }
+  const cur=Q.steps&&Q.steps[Q.i];
+  if(cur&&cur.mode==="listen"&&!cur.played&&Q.done==null){ cur.played=true; setTimeout(()=>speak(cur.item.jp),250); }
   el.innerHTML=`<div class="layer-top"><button class="x" data-act="close" aria-label="Tutup">✕</button><div class="bar"><i style="width:${prog}%"></i></div><span class="chip num" data-clock>0:00</span></div>
   <div class="layer-body"><div><h2 class="muted" style="font-size:14px;font-weight:600">${esc(Q.lesson.title)}</h2>${body}</div></div><div class="layer-foot"><div>${foot}</div></div>`;
   updateClock();
@@ -978,15 +1126,25 @@ document.addEventListener("click",e=>{
   if(b.dataset.lesson){startLesson(b.dataset.lesson); return;}
   if(b.dataset.sayId!=null){speakID(b.dataset.sayId); return;}
   if(b.dataset.say){speak(b.dataset.say); return;}
+  if(Q&&b.dataset.ml){ const st=Q.steps[Q.i]; st.pick=b.dataset.ml; st.bad=null; sfx("tap"); renderLayer(); return; }
+  if(Q&&b.dataset.mr){ const st=Q.steps[Q.i];
+    if(!st.pick){ toast("Ketuk dulu kata di kolom kiri."); return; }
+    const ok=st.pick===b.dataset.mr, it=ITEMS[st.pick];
+    if(ok){ st.solved.push(st.pick); if(!st.miss[st.pick]) recordAnswer(it,true); else {sfx("ok");} st.pick=null; st.bad=null; if(it.kind!=="kanji") speak(it.jp); }
+    else { if(!st.miss[st.pick]){ st.miss[st.pick]=1; recordAnswer(it,false); } else sfx("bad"); st.bad=[st.pick,b.dataset.mr]; }
+    renderLayer(); return; }
+  if(Q&&b.dataset.pick){ const st=Q.steps[Q.i]; st.picked.push(b.dataset.pick); sfx("tap"); renderLayer(); return; }
+  if(Q&&b.dataset.unpick!=null){ const st=Q.steps[Q.i]; st.picked.splice(+b.dataset.unpick,1); renderLayer(); return; }
   if(b.dataset.opt!=null && Q && !Q.answered){
     const st=Q.steps[Q.i]; Q.answered=b.dataset.opt; const ok=Q.answered===st.answer; recordAnswer(st.item,ok);
-    if(st.mode==="meaning"&&st.item.kind!=="kanji"||st.mode==="read") speak(st.item.jp); else if(st.mode==="gram") speak(st.item.jp.replace("＿",st.item.answer)); else if(st.mode==="exread") speak(st.item.ex); renderLayer(); return;
+    if(st.mode==="meaning"&&st.item.kind!=="kanji"||st.mode==="read"||st.mode==="listen") speak(st.item.jp); else if(st.mode==="gram") speak(st.item.jp.replace("＿",st.item.answer)); else if(st.mode==="exread") speak(st.item.ex); renderLayer(); return;
   }
   const act=b.dataset.act;
   if(act==="free"){freeSession=!freeSession; lastTick=Date.now(); render(); toast(freeSession?"Sesi bebas berjalan. Waktu belajar dari buku atau video ikut tercatat.":"Sesi bebas dijeda.");}
   else if(act==="review"){startReview(false);}
   else if(act==="srs"){ if(Q){closeLayer();} startSRS(); }
   else if(act==="review-all"){startReview(true);}
+  else if(act==="check-build"&&Q){ const st=Q.steps[Q.i]; const got=st.picked.map(k=>st.bank.find(x=>x.k===k).t).join(""); const ok=got===st.tokens.join(""); st.answered=ok?"ok":"bad"; recordAnswer(st.item,ok); speak(st.tokens.join("")); renderLayer(); }
   else if(act==="next"&&Q){try{rec&&rec.abort();}catch(e){} Q.answered=null; Q.i++; if(Q.i>=Q.steps.length) finish(); else renderLayer();}
   else if(act==="mic-test"){micTest();}
   else if(act==="talk"){ const id=b.dataset.scene; if(Q) {Q=null;} if(!inLayer) startTalk(id); else {startTalk(id);} }
