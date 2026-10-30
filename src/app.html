@@ -821,7 +821,7 @@ const SCENES=[
   {id:"daily",jp:"毎日の生活",title:"Kegiatan sehari-hari",desc:"Rutinitas, akhir pekan, rencana",role:"teman kantor yang ramah"},
   {id:"free",jp:"自由会話",title:"Ngobrol bebas",desc:"Topik apa saja yang kamu mau",role:"teman orang Jepang yang sabar"}
 ];
-let talkLevel="N5", talkStyle="nyeleneh", AI=null, aiChecked=false, aiSource="";
+let talkLevel="N5", talkStyle="nyeleneh", talkReply="id", AI=null, aiChecked=false, aiSource="";
 const KEY_LS="nihongo-harian-apikey";
 const getKey=()=>{try{return localStorage.getItem(KEY_LS)||"";}catch(e){return "";}};
 /* Versi GitHub: memanggil Claude API langsung dari HP dengan API key milik Rinji sendiri (tersimpan hanya di HP). */
@@ -868,8 +868,9 @@ function viewTalk(){
     <p class="muted" style="margin:0;font-size:13px">Tanpa API key, pakai versi claude.ai dari aplikasi ini (gratis, lewat paket Claude-mu).</p></section>`;
   }
   return head+`<section class="card" style="display:grid;gap:10px">
-    <p style="margin:0">Pilih situasi. Partner AI berbicara bahasa Jepang seperti penutur asli dan mengoreksi kesalahanmu dalam bahasa Indonesia.</p>
+    <p style="margin:0">Pilih situasi. Partner AI berbicara seperti penutur asli dan mengoreksi kesalahanmu dalam bahasa Indonesia.</p>
     <div class="row" style="flex-wrap:wrap;gap:8px"><span class="muted" style="font-size:13px">Tingkat</span>${["N5","N4"].map(l=>`<button class="chip ${talkLevel===l?"good":""}" data-act="level" data-level="${l}" aria-pressed="${talkLevel===l}">${l}</button>`).join("")}</div>
+    <div class="row" style="flex-wrap:wrap;gap:8px"><span class="muted" style="font-size:13px">Balasan AI</span>${[["id","Bahasa Indonesia"],["jp","Bahasa Jepang"]].map(([v,l])=>`<button class="chip ${talkReply===v?"good":""}" data-act="reply" data-reply="${v}" aria-pressed="${talkReply===v}">${l}</button>`).join("")}</div>
     <div class="row" style="flex-wrap:wrap;gap:8px"><span class="muted" style="font-size:13px">Gaya AI</span>${[["nyeleneh","Nyeleneh"],["normal","Normal"]].map(([v,l])=>`<button class="chip ${talkStyle===v?"good":""}" data-act="style" data-style="${v}" aria-pressed="${talkStyle===v}">${l}</button>`).join("")}</div>
     <p class="muted" style="margin:0;font-size:13px">${SR&&!micBlocked?"Tekan tombol mikrofon untuk bicara, atau ketik.":"Untuk bicara: ketuk kolom ketik, lalu tekan ikon mikrofon di keyboard HP (Gboard), dan ucapkan dalam bahasa Jepang. Pasang bahasa Jepang di Gboard lewat Setelan Gboard → Bahasa."}</p>
   </section>
@@ -885,7 +886,8 @@ Aturan:
 - Bicaralah seperti penutur asli Jepang yang ramah dan natural, tetapi sesuaikan dengan tingkat ${talkLevel}: ${talkLevel==="N5"?"kalimat pendek, bentuk です/ます, kosakata dasar N5, kanji sedikit":"bentuk sopan dan sesekali bentuk biasa, kosakata dan tata bahasa sampai N4"}.
 ${talkStyle==="nyeleneh"?`- GAYA NYELENEH: kamu karakter yang kocak, absurd, dan suka bercanda. Beri jawaban yang tak terduga, lebay, atau sedikit konyol (misalnya mengaku punya kucing yang bisa menyetir, atau menawarkan menu ramen rasa durian), tapi tetap sopan, tetap dalam situasi, dan tetap memakai bahasa Jepang yang benar sesuai tingkat. Terjemahan Indonesia ("id") boleh ikut gaul dan lucu. Penjelasan koreksi tetap jelas dan benar, boleh diselipi candaan singkat.
 `:""}- Satu giliran berisi 1–2 kalimat saja, lalu ajukan pertanyaan atau beri kesempatan Rinji menjawab supaya percakapan berlanjut.
-- BAHASA: percakapan peranmu (field "jp") dalam bahasa Jepang. SEMUA koreksi, penjelasan, pujian, dan terjemahan (field "explain", "praise", "id", serta arti di "hint") WAJIB dalam bahasa Indonesia. Jangan pernah menulis penjelasan dalam bahasa Jepang atau Inggris.
+${talkReply==="id"?`- Rinji membaca balasanmu terutama dalam bahasa Indonesia (field "id"), jadi buat "id" terasa natural seperti obrolan orang Indonesia, bukan terjemahan kaku. Field "jp" tetap berisi kalimat yang sama dalam bahasa Jepang sebagai bahan belajar. Rinji tetap menjawab dalam bahasa Jepang; kalau ia menjawab dalam bahasa Indonesia, ajari cara mengatakannya dalam bahasa Jepang lewat "correction".
+`:""}- BAHASA: percakapan peranmu (field "jp") dalam bahasa Jepang. SEMUA koreksi, penjelasan, pujian, dan terjemahan (field "explain", "praise", "id", serta arti di "hint") WAJIB dalam bahasa Indonesia. Jangan pernah menulis penjelasan dalam bahasa Jepang atau Inggris.
 - Periksa pesan terakhir Rinji: tata bahasa, kosakata, partikel, bentuk sopan, dan kewajaran. Jika ada kesalahan, isi "correction": "wrong" = bagian yang salah, "right" = versi benar dalam bahasa Jepang, "explain" = penjelasan dalam bahasa Indonesia yang mudah dipahami pemula: apa yang salah, kenapa, dan aturannya. Contoh explain: "Partikel topik ditulis は (dibaca 'wa'), bukan わ. Jadi: わたしは リンジです." Jika pesannya dalam romaji, beri tahu tulisan kananya. Jika ia menulis dalam bahasa Indonesia, bantu ia mengatakannya dalam bahasa Jepang lalu lanjutkan percakapan.
 - Teks dari Rinji mungkin hasil pengenalan suara, jadi abaikan salah ketik kecil yang jelas berasal dari pengenal suara.
 - Jangan keluar dari peran kecuali untuk koreksi.
@@ -939,8 +941,10 @@ function talkBody(){
     if(m.role==="user") return `<div class="bub me">${esc(m.text)}</div>`;
     const d=m.data, last=i===Q.msgs.length-1;
     const corr=d.correction&&d.correction.right?`<div class="corr"><span class="eyebrow" style="color:var(--bad)">Koreksi · penjelasan</span><div>${d.correction.wrong?`<s>${esc(d.correction.wrong)}</s> → `:""}<b class="jp">${esc(d.correction.right)}</b></div><div>${esc(d.correction.explain||"")}</div></div>`:d.praise?`<div class="praise">${esc(d.praise)}</div>`:"";
-    return `${corr}<div class="bub ai"><div class="jp" style="font-size:18px;font-weight:700">${esc(d.jp)}</div>${d.kana&&d.kana!==d.jp?`<div class="muted jp" style="font-size:13px">${esc(d.kana)}</div>`:""}
-      <div class="idline"><span class="eyebrow">Arti</span> ${esc(d.id||"")}</div>
+    const jpBlock=`<div class="jp" style="font-size:${talkReply==="id"?15:18}px;font-weight:700">${esc(d.jp)}</div>${d.kana&&d.kana!==d.jp?`<div class="muted jp" style="font-size:13px">${esc(d.kana)}</div>`:""}`;
+    const main=talkReply==="id"?`<div style="font-size:17px;font-weight:600">${esc(d.id||d.jp)}</div><div class="idline"><span class="eyebrow">Dalam bahasa Jepang</span>${jpBlock}</div>`
+      :`${jpBlock}<div class="idline"><span class="eyebrow">Arti</span> ${esc(d.id||"")}</div>`;
+    return `${corr}<div class="bub ai">${main}
       <div class="row" style="gap:8px"><button class="speak" data-say="${esc(d.jp)}">Dengar ▸</button></div>
       ${last&&d.hint?`<div class="hint"><span class="eyebrow">Contoh jawaban</span><div class="jp">${esc(d.hint)}</div></div>`:""}</div>`;
   }).join("");
@@ -976,6 +980,7 @@ document.addEventListener("click",e=>{
   else if(act==="mic-test"){micTest();}
   else if(act==="talk"){ const id=b.dataset.scene; if(Q) {Q=null;} if(!inLayer) startTalk(id); else {startTalk(id);} }
   else if(act==="key-remove"){ try{localStorage.removeItem(KEY_LS);}catch(e){} if(aiSource==="api"){AI=null; aiSource="";} render(); toast("API key dihapus dari HP ini."); }
+  else if(act==="reply"){ talkReply=b.dataset.reply; render(); }
   else if(act==="style"){ talkStyle=b.dataset.style; render(); }
   else if(act==="level"){ talkLevel=b.dataset.level; render(); }
   else if(act==="talk-mic"){ talkListen(); }
