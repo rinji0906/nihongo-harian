@@ -439,6 +439,8 @@ function voiceCard(){
   const ok="speechSynthesis" in window;
   return `<section class="card" style="display:grid;gap:10px"><div class="row between"><h2>Tes suara</h2><button class="btn primary" data-act="tts-test">Putar こんにちは</button></div>
   <p class="muted" style="margin:0;font-size:14px" id="ttsInfo">${!ok?"Browser ini tidak mendukung suara.":`${voiceCount} suara terpasang · suara Jepang: <b>${jaVoice?esc(jaVoice.name):"tidak ditemukan"}</b>${lastTts?" · terakhir: "+esc(lastTts):""}`}</p>
+  <div class="row between" style="border-top:1px solid var(--line);padding-top:10px"><h2>Tes mikrofon</h2><button class="btn primary" data-act="mic-test">Mulai</button></div>
+  <p class="muted" style="margin:0;font-size:14px" id="micInfo">${SR?"Tekan Mulai, lalu ucapkan こんにちは.":"Browser ini tidak mendukung pengenal suara. Pakai Chrome di Android."}</p>
   <details><summary style="cursor:pointer;font-weight:600">Tidak ada suara? Cek ini</summary><ol style="margin:8px 0 0;padding-left:20px;display:grid;gap:4px;font-size:14px">
     <li>Naikkan <b>volume media</b> (bukan volume dering) dan matikan mode senyap.</li>
     <li>Buka <b>Setelan HP → Aksesibilitas → Output text-to-speech</b>. Pilih mesin <b>Speech Services by Google</b>.</li>
@@ -465,16 +467,17 @@ function listen(st){
   st.listening=true; st.heard=null; st.ok=null; st.err=null; renderLayer();
   let got=false;
   rec.onresult=ev=>{
-    got=true; const alts=[...ev.results[0]].map(a=>a.transcript);
+    got=true; lastMic="ok"; const alts=[...ev.results[0]].map(a=>a.transcript);
     const target=clean(st.item.jp), rom=st.item.romaji.toLowerCase();
     const ok=alts.some(a=>{const c=clean(a); return c.includes(target)||c===rom||c===rom+rom;});
     st.heard=alts[0]||""; st.ok=ok; st.tries=(st.tries||0)+1;
     if(st.tries===1||ok) recordSpeech(st.item,ok);
   };
   rec.onerror=ev=>{
-    if(ev.error==="not-allowed"||ev.error==="service-not-allowed"){micBlocked=true; st.err="blocked";}
+    lastMic=ev.error;
+    if(ev.error==="not-allowed"&&!onGithub()){micBlocked=true; st.err="blocked";}
     else if(ev.error==="no-speech") st.err="nospeech";
-    else if(ev.error!=="aborted") st.err="other";
+    else if(ev.error!=="aborted"){st.err="other"; st.errCode=ev.error;}
   };
   rec.onend=()=>{ st.listening=false; if(!got&&!st.err) st.err="nospeech"; if(Q&&Q.steps[Q.i]===st) renderLayer(); };
   try{rec.start();}catch(e){st.listening=false; st.err="other"; renderLayer();}
@@ -521,6 +524,31 @@ function openTable(script){
   Q=newQ({mode:"table",lesson:{title:"Tabel "+u.title},rows:u.lessons.map(l=>l.items),steps:[]});
   openLayer();
 }
+const onGithub=()=>/github\.io$/.test(location.hostname);
+let lastMic="";
+function micErrText(code){
+  return ({
+    "not-allowed":"Izin mikrofon ditolak. Ketuk ikon di kiri alamat web → Izin → Mikrofon → Izinkan, lalu muat ulang halaman.",
+    "service-not-allowed":"Layanan pengenal suara tidak aktif. Pastikan aplikasi Google terpasang dan aktif, dan buka halaman ini di Chrome (bukan di dalam aplikasi lain).",
+    "language-not-supported":"Bahasa Jepang belum tersedia untuk pengenal suara. Buka aplikasi Google → Setelan → Suara → Bahasa, lalu tambahkan 日本語.",
+    "network":"Pengenal suara butuh internet. Periksa koneksi lalu coba lagi.",
+    "audio-capture":"Mikrofon tidak bisa dipakai. Tutup aplikasi lain yang memakai mikrofon (telepon, perekam), lalu coba lagi.",
+    "no-speech":"Suara tidak terdengar. Dekatkan HP dan ucapkan lebih keras."
+  })[code]||("Pengenalan suara gagal ("+(code||"tidak diketahui")+"). Coba lagi.");
+}
+function micTest(){
+  const info=()=>document.getElementById("micInfo");
+  const show=t=>{const el=info(); if(el) el.textContent=t;};
+  if(!SR){show("Browser ini tidak mendukung pengenal suara. Pakai Chrome di Android."); return;}
+  try{rec&&rec.abort();}catch(e){}
+  const r=new SR(); rec=r; r.lang="ja-JP"; r.maxAlternatives=3; r.interimResults=true; r.continuous=false;
+  let heard="", code="";
+  r.onstart=()=>show("Mendengarkan… ucapkan 「こんにちは」");
+  r.onresult=ev=>{heard=[...ev.results].map(x=>x[0].transcript).join(""); show("Terdengar: 「"+heard+"」");};
+  r.onerror=ev=>{code=ev.error;};
+  r.onend=()=>{ lastMic=heard?"ok":(code||"no-speech"); show(heard?"Mikrofon berfungsi. Terdengar: 「"+heard+"」":"Kode: "+(code||"no-speech")+" · "+micErrText(code||"no-speech")); };
+  try{r.start(); show("Menyiapkan mikrofon…");}catch(e){show("Gagal memulai: "+e.message);}
+}
 const micMsg=()=>SR?"Mikrofon tidak diizinkan di halaman ini. Latihan bicara berjalan di versi aplikasi dari GitHub.":"Browser ini belum mendukung pengenalan suara. Pakai Chrome di Android.";
 function openLayer(){inLayer=true; lastTick=Date.now(); document.getElementById("layer").hidden=false; document.body.style.overflow="hidden"; renderLayer();}
 function closeLayer(){try{rec&&rec.abort();}catch(e){} inLayer=false; Q=null; const el=document.getElementById("layer"); el.hidden=true; el.innerHTML=""; document.body.style.overflow=""; save(true); render();}
@@ -548,7 +576,7 @@ function speakBody(st){
   if(micBlocked||st.err==="blocked") status=`<div class="feedback wrong">${micMsg()}</div>`;
   else if(st.listening) status=`<div class="feedback" style="background:var(--ai-soft);color:var(--ai)">Mendengarkan… ucapkan sekarang</div>`;
   else if(st.err==="nospeech") status=`<div class="feedback wrong">Suara tidak terdengar. Tekan mikrofon lalu ucapkan lebih jelas.</div>`;
-  else if(st.err==="other") status=`<div class="feedback wrong">Pengenalan suara gagal. Periksa koneksi internet lalu coba lagi.</div>`;
+  else if(st.err==="other") status=`<div class="feedback wrong">${esc(micErrText(st.errCode))}</div>`;
   else if(st.ok===true) status=`<div class="feedback right">Benar! Terdengar 「${esc(st.heard)}」. 上手!</div>`;
   else if(st.ok===false) status=`<div class="feedback wrong">Terdengar 「${esc(st.heard)}」, belum cocok dengan ${it.jp} (${esc(it.romaji)}). Dengarkan contohnya, lalu coba lagi.${it.kind==="kana"?" Untuk satu huruf, coba ucapkan dua kali: “"+esc(it.romaji)+", "+esc(it.romaji)+"”.":""}</div>`;
   else status=`<p class="muted" style="margin:0;text-align:center">Tekan mikrofon, lalu ucapkan dengan suara jelas.</p>`;
@@ -626,6 +654,7 @@ document.addEventListener("click",e=>{
   else if(act==="review"){startReview(false);}
   else if(act==="review-all"){startReview(true);}
   else if(act==="next"&&Q){try{rec&&rec.abort();}catch(e){} Q.answered=null; Q.i++; if(Q.i>=Q.steps.length) finish(); else renderLayer();}
+  else if(act==="mic-test"){micTest();}
   else if(act==="tts-test"){speak("こんにちは"); setTimeout(()=>{const el=document.getElementById("ttsInfo"); if(el&&tab==="stats") render();},1500);}
   else if(act==="listen"&&Q){listen(Q.steps[Q.i]);}
   else if(act==="skip-speak"&&Q){Q.steps=Q.steps.filter((s,i)=>i<Q.i||s.type!=="speak"); if(Q.i>=Q.steps.length) finish(); else renderLayer();}
