@@ -983,6 +983,16 @@ function chart(){
 let jaVoice=null, voiceCount=0, lastTts="", curUtt=null;
 function loadVoice(){try{const vs=speechSynthesis.getVoices(); voiceCount=vs.length; jaVoice=vs.find(v=>/^ja([-_]|$)/i.test(v.lang))||null;}catch(e){}}
 if("speechSynthesis" in window){loadVoice(); try{speechSynthesis.addEventListener("voiceschanged",loadVoice);}catch(e){speechSynthesis.onvoiceschanged=loadVoice;}}
+// Suara bahasa Indonesia untuk balasan AI (mode Balasan: Bahasa Indonesia)
+function speakID(text){
+  if(!("speechSynthesis" in window)) return;
+  try{
+    const ss=speechSynthesis; if(ss.speaking||ss.pending) ss.cancel(); ss.resume();
+    const u=new SpeechSynthesisUtterance(text); u.lang="id-ID"; u.rate=1.05; u.pitch=1.15; u.volume=1;
+    const v=ss.getVoices().find(v=>/^(id|in)([-_]|$)/i.test(v.lang)); if(v) u.voice=v;
+    curUtt=u; setTimeout(()=>ss.speak(u),60);
+  }catch(e){}
+}
 function speak(text){
   if(!("speechSynthesis" in window)){lastTts="Browser tidak mendukung suara"; toast("Browser ini belum mendukung suara. Pakai Chrome."); return;}
   try{
@@ -1351,7 +1361,7 @@ async function talkSend(text){
     if(!data||typeof data.jp!=="string") throw {code:"invalid_json"};
     Q.msgs.push({role:"assistant",data});
     if(text!=null){ if(data.correction) Q.wrong++; else Q.right++; }
-    speak(data.jp);
+    if(talkReply==="id"&&data.id) speakID(data.id); else speak(data.jp);
   }catch(e){
     Q.err=({rate_limited:"Batas pemakaian Claude tercapai. Coba lagi nanti.",not_granted:"Izin untuk memakai Claude belum diberikan. Buka menu izin halaman ini, lalu izinkan.",sampling_disabled:"Fitur AI dimatikan untuk akun ini.",bad_key:"API key tidak valid. Hapus lalu masukkan ulang di tab Bicara.",no_credit:"Saldo akun API habis. Isi saldo di console.anthropic.com.",sdk_load:"Gagal memuat penghubung AI. Periksa internet lalu coba lagi.",refused:"AI menolak menjawab pesan ini. Coba kalimat lain.",invalid_json:"Jawaban AI tidak terbaca. Tekan Kirim ulang."})[e&&e.code]||"Gagal menghubungi AI. Periksa internet, lalu tekan Kirim ulang.";
     Q.retry=text;
@@ -1380,7 +1390,7 @@ function talkBody(){
     const main=talkReply==="id"?`<div style="font-size:17px;font-weight:600">${esc(d.id||d.jp)}</div><div class="idline"><span class="eyebrow">Dalam bahasa Jepang</span>${jpBlock}</div>`
       :`${jpBlock}<div class="idline"><span class="eyebrow">Arti</span> ${esc(d.id||"")}</div>`;
     return `${corr}<div class="bub ai">${main}
-      <div class="row" style="gap:8px"><button class="speak" data-say="${esc(d.jp)}">Dengar ▸</button></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">${talkReply==="id"?`<button class="speak" data-say-id="${esc(d.id||"")}">Dengar ▸</button><button class="speak" data-say="${esc(d.jp)}">Dengar Jepang ▸</button>`:`<button class="speak" data-say="${esc(d.jp)}">Dengar ▸</button>`}</div>
       ${last&&d.hint?`<div class="hint"><span class="eyebrow">Contoh jawaban</span><div class="jp">${esc(d.hint)}</div></div>`:""}</div>`;
   }).join("");
   return `<div class="chat">${bubbles}${Q.busy?`<div class="bub ai typing">…</div>`:""}${Q.err?`<div class="feedback wrong">${esc(Q.err)} <button class="btn" data-act="talk-retry" style="margin-top:8px">Kirim ulang</button></div>`:""}</div>`;
@@ -1401,6 +1411,7 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("button,[data-tab]"); if(!b) return;
   if(b.dataset.tab){tab=b.dataset.tab; render(); window.scrollTo(0,0); return;}
   if(b.dataset.lesson){startLesson(b.dataset.lesson); return;}
+  if(b.dataset.sayId!=null){speakID(b.dataset.sayId); return;}
   if(b.dataset.say){speak(b.dataset.say); return;}
   if(b.dataset.opt!=null && Q && !Q.answered){
     const st=Q.steps[Q.i]; Q.answered=b.dataset.opt; const ok=Q.answered===st.answer; recordAnswer(st.item,ok);
