@@ -1,0 +1,621 @@
+<title>Nihongo Harian</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
+<style>
+/* Layout: one-column phone app; content screens scroll above a fixed bottom tab bar; lessons open as a full-screen layer. */
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --surface-2:#E8ECF3; --line:#D5DCE7;
+  --fg:#1A2233; --muted:#5C6880;
+  --ai:#22427A;        /* ai-iro indigo: primary */
+  --ai-soft:#DCE4F2;
+  --shu:#C8402F;       /* shu vermilion: hanko stamp, streak */
+  --good:#2F7D5B; --good-soft:#DCEFE5;
+  --bad:#B53A3A; --bad-soft:#F6E0DE;
+  --f-jp:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141C; --surface:#181E29; --surface-2:#222A38; --line:#2E3747;
+  --fg:#E6EAF2; --muted:#9AA5BA; --ai:#8FB0EA; --ai-soft:#24324D;
+  --shu:#EE7A66; --good:#6CC79C; --good-soft:#1C3529; --bad:#EC8C84; --bad-soft:#3A2224; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141C; --surface:#181E29; --surface-2:#222A38; --line:#2E3747;
+  --fg:#E6EAF2; --muted:#9AA5BA; --ai:#8FB0EA; --ai-soft:#24324D;
+  --shu:#EE7A66; --good:#6CC79C; --good-soft:#1C3529; --bad:#EC8C84; --bad-soft:#3A2224; color-scheme:dark}
+
+html,body{height:100%}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible{outline:2px solid var(--ai);outline-offset:2px}
+.jp{font-family:var(--f-jp)}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px calc(96px + env(safe-area-inset-bottom,0px));display:grid;gap:18px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:var(--f-jp);font-weight:900;font-size:26px;letter-spacing:.01em}
+h2{font-size:17px;font-weight:700}
+.eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.row{display:flex;gap:12px;align-items:center}
+.between{justify-content:space-between}
+.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:600;background:var(--surface-2)}
+.btn.primary{background:var(--ai);color:var(--bg)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.num{font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:13px;font-weight:600;background:var(--surface-2)}
+.chip.shu{background:transparent;border:1.5px solid var(--shu);color:var(--shu)}
+.chip.good{background:var(--good-soft);color:var(--good)}
+
+/* Home: today ring */
+.today{display:grid;grid-template-columns:132px 1fr;gap:16px;align-items:center}
+.ring{position:relative;width:132px;height:132px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .big{font-size:28px;font-weight:700;line-height:1}
+.today-info{display:grid;gap:8px;min-width:0}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+.day{display:grid;gap:4px;justify-items:center;font-size:11px;color:var(--muted)}
+.stamp{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-jp);font-weight:900;font-size:15px;border:1.5px dashed var(--line);color:transparent}
+.stamp.part{border-style:solid;border-color:var(--ai-soft);background:var(--ai-soft)}
+.stamp.full{border:2px solid var(--shu);color:var(--shu);transform:rotate(-8deg)}
+.stamp.now{outline:2px solid var(--ai);outline-offset:2px}
+
+.action{display:flex;gap:14px;align-items:center;text-align:left;width:100%;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:14px}
+.action .glyph{flex:none;width:52px;height:52px;border-radius:12px;display:grid;place-items:center;background:var(--ai-soft);color:var(--ai);font-family:var(--f-jp);font-weight:900;font-size:24px}
+.action .txt{min-width:0;display:grid;gap:2px}
+.action .txt b{font-weight:700}
+.action .go{margin-left:auto;color:var(--muted);font-size:20px}
+
+/* Lesson list */
+.unit{display:grid;gap:10px}
+.unit-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lesson{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.lesson .ico{flex:none;width:44px;height:44px;border-radius:10px;display:grid;place-items:center;font-family:var(--f-jp);font-weight:700;font-size:19px;background:var(--surface-2)}
+.lesson.done .ico{background:var(--good-soft);color:var(--good)}
+.lesson .meta{font-size:13px;color:var(--muted)}
+.lesson.locked{opacity:.55;cursor:default}
+.lesson .txt{min-width:0;flex:1}
+
+/* Progress */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:22px}
+.chart svg{width:100%;height:auto;display:block}
+.hist{display:grid;gap:0}
+.hist-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:10px 0;border-top:1px solid var(--line);align-items:center;font-size:14px}
+.hist-row:first-child{border-top:0}
+select{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+
+/* Tab bar */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{border:0;background:none;padding:8px 4px 10px;display:grid;justify-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--muted)}
+.tab .k{font-family:var(--f-jp);font-size:19px;font-weight:700;line-height:1.2}
+.tab[aria-current="page"]{color:var(--ai)}
+
+/* Lesson / review layer */
+.layer{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.layer-top{display:flex;align-items:center;gap:12px;padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px))}
+.x{border:0;background:var(--surface-2);width:36px;height:36px;border-radius:50%;font-size:18px;flex:none}
+.bar{flex:1;height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ai);border-radius:99px;transition:width .25s}
+.layer-body{flex:1;overflow:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px 16px}
+.layer-body>div{max-width:520px;margin:0 auto;display:grid;gap:16px}
+.layer-foot{padding:12px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+.layer-foot>div{max-width:520px;margin:0 auto}
+.flash{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 16px;display:grid;gap:10px;justify-items:center;text-align:center}
+.flash .glyph{font-family:var(--f-jp);font-weight:700;font-size:min(30vw,120px);line-height:1.1;color:var(--fg)}
+.flash .glyph.word{font-size:min(12vw,48px)}
+.flash .romaji{font-size:20px;font-weight:600;color:var(--ai)}
+.flash .tip{font-size:14px;color:var(--muted);max-width:34ch}
+.speak{border:1px solid var(--line);background:var(--surface-2);border-radius:99px;padding:8px 16px;font-weight:600}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:16px 10px;font-weight:600;font-size:17px;min-height:60px}
+.opt.jp{font-size:22px}
+.opt.right{border-color:var(--good);background:var(--good-soft);color:var(--good)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.feedback{border-radius:12px;padding:12px 14px;font-weight:600}
+.feedback.right{background:var(--good-soft);color:var(--good)}
+.feedback.wrong{background:var(--bad-soft);color:var(--bad)}
+.result{text-align:center;display:grid;gap:10px;justify-items:center;padding-top:24px}
+.result .score{font-size:56px;font-weight:700;line-height:1}
+.hanko{width:96px;height:96px;border-radius:50%;border:3px solid var(--shu);color:var(--shu);display:grid;place-items:center;font-family:var(--f-jp);font-weight:900;font-size:34px;transform:rotate(-10deg)}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;max-width:calc(100% - 32px);text-align:center}
+.syncnote{font-size:12px;color:var(--muted);text-align:center}
+.lesson-row{display:flex;gap:8px;align-items:stretch}
+.lesson-row .lesson{flex:1;min-width:0}
+.lesson-mic{flex:none;width:52px;border:1px solid var(--line);background:var(--surface);border-radius:12px;color:var(--ai);display:grid;place-items:center}
+.lesson-mic svg{width:24px;height:24px}
+.mic{width:84px;height:84px;border-radius:50%;border:0;background:var(--ai);color:var(--bg);display:grid;place-items:center;box-shadow:0 0 0 0 var(--ai-soft)}
+.mic.on{animation:pulse 1.2s infinite}
+.mic:disabled:not(.on){opacity:.4}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--ai-soft)}100%{box-shadow:0 0 0 22px transparent}}
+.ktable{display:grid;gap:6px}
+.krow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.kcell{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 2px;display:grid;justify-items:center;gap:0}
+.kcell .jp{font-size:24px;font-weight:700;line-height:1.3}
+.kcell small{color:var(--muted);font-size:11px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:360px){.today{grid-template-columns:1fr;justify-items:center}.today-info{justify-items:center;text-align:center}}
+</style>
+
+<main id="app"></main>
+<nav class="tabs" aria-label="Menu utama"><div class="tabs-in" id="tabs"></div></nav>
+<div id="layer" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+/* ============================================================
+   KURIKULUM — struktur yang akan diisi langkah 2–4.
+   kind: "kana" | "vocab" (langkah 3 menambah "kanji", "grammar"; langkah 4 "talk").
+   Setiap item punya id unik global supaya statistik benar/salah tersimpan per item.
+   ============================================================ */
+const KANA_ROWS = [
+  ["a","あ a,い i,う u,え e,お o"],["ka","か ka,き ki,く ku,け ke,こ ko"],["sa","さ sa,し shi,す su,せ se,そ so"],
+  ["ta","た ta,ち chi,つ tsu,て te,と to"],["na","な na,に ni,ぬ nu,ね ne,の no"],["ha","は ha,ひ hi,ふ fu,へ he,ほ ho"],
+  ["ma","ま ma,み mi,む mu,め me,も mo"],["ya","や ya,ゆ yu,よ yo"],["ra","ら ra,り ri,る ru,れ re,ろ ro"],
+  ["wa","わ wa,を wo,ん n"],["ga","が ga,ぎ gi,ぐ gu,げ ge,ご go"],["za","ざ za,じ ji,ず zu,ぜ ze,ぞ zo"],
+  ["da","だ da,ぢ ji,づ zu,で de,ど do"],["ba","ば ba,び bi,ぶ bu,べ be,ぼ bo"],["pa","ぱ pa,ぴ pi,ぷ pu,ぺ pe,ぽ po"]
+];
+const KANA_ID = {"ぢ":"di","づ":"du"};          // romaji kembar → id unik
+const KANA_TIP = {
+  a:"Seperti 'a' pada 'apa'.", i:"Seperti 'i' pada 'ini'.", u:"'u' dengan bibir tidak terlalu bulat.", e:"Seperti 'e' pada 'enak'.", o:"Seperti 'o' pada 'oto'.",
+  shi:"Dibaca 'syi', bukan 'si'.", chi:"Dibaca 'ci' seperti pada 'cinta'.", tsu:"Bunyi 'ts' cepat, seperti akhir kata 'cats'.",
+  fu:"Antara 'fu' dan 'hu', bibir tidak menempel.", ha:"Sebagai partikel (kata bantu) dibaca 'wa'.", he:"Sebagai partikel dibaca 'e'.",
+  wo:"Dibaca 'o'. Hanya dipakai sebagai partikel objek.", n:"Satu-satunya huruf mati. Bunyi 'n' atau 'ng'.",
+  ra:"Bunyi 'r' ringan, antara 'r' dan 'l'.", ji:"じ lebih umum. ぢ jarang dipakai.", zu:"ず lebih umum. づ jarang dipakai.",
+  ga:"Dua titik (dakuten) membuat bunyi jadi berat: か→が.", pa:"Lingkaran kecil (handakuten) mengubah は jadi ぱ."
+};
+const toKata = s => s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0)+0x60));
+function kanaLessons(script){
+  const p = script==="h" ? "h" : "k", name = script==="h" ? "Hiragana" : "Katakana";
+  return KANA_ROWS.map(([row,list])=>{
+    const items = list.split(",").map(x=>{const [h,r]=x.split(" "); const jp=script==="h"?h:toKata(h);
+      return {id:p+":"+(KANA_ID[h]||r), jp, romaji:r, tip:KANA_TIP[r]};});
+    return {id:p+"-"+row, kind:"kana", title:name+" "+items.map(i=>i.jp).join(" "), glyph:items[0].jp, items};
+  });
+}
+const COURSE = [
+  { id:"hira", title:"Hiragana", sub:"46 huruf dasar + dakuten", table:"h", lessons:kanaLessons("h") },
+  { id:"kata", title:"Katakana", sub:"Untuk kata serapan asing", table:"k", lessons:kanaLessons("k") },
+  { id:"salam", title:"Ungkapan dasar", sub:"Kalimat yang dipakai setiap hari", lessons:[
+    { id:"v-salam", kind:"vocab", title:"Salam sehari-hari", glyph:"挨", items:[
+      {id:"v:ohayou",jp:"おはよう",romaji:"ohayou",arti:"selamat pagi"},
+      {id:"v:konnichiwa",jp:"こんにちは",romaji:"konnichiwa",arti:"halo / selamat siang"},
+      {id:"v:konbanwa",jp:"こんばんは",romaji:"konbanwa",arti:"selamat malam"},
+      {id:"v:sayounara",jp:"さようなら",romaji:"sayounara",arti:"selamat tinggal"}]},
+    { id:"v-sopan", kind:"vocab", title:"Terima kasih & maaf", glyph:"礼", items:[
+      {id:"v:arigatou",jp:"ありがとう",romaji:"arigatou",arti:"terima kasih"},
+      {id:"v:sumimasen",jp:"すみません",romaji:"sumimasen",arti:"permisi / maaf"},
+      {id:"v:hai",jp:"はい",romaji:"hai",arti:"ya"},
+      {id:"v:iie",jp:"いいえ",romaji:"iie",arti:"tidak / bukan"}]}
+  ]},
+  { id:"n5", title:"JLPT N5", sub:"Kosakata, kanji, tata bahasa", lessons:[
+    { id:"n5-vocab", kind:"vocab", title:"Kosakata N5 + SRS", glyph:"語", soon:true },
+    { id:"n5-kanji", kind:"kanji", title:"Kanji N5", glyph:"字", soon:true },
+    { id:"n5-gram",  kind:"grammar", title:"Tata bahasa N5", glyph:"文", soon:true }
+  ]},
+  { id:"n4", title:"JLPT N4", sub:"Lanjutan menuju target", lessons:[
+    { id:"n4-all", kind:"vocab", title:"Kurikulum N4", glyph:"四", soon:true }
+  ]},
+  { id:"talk", title:"Percakapan", sub:"Bicara dengan partner AI", lessons:[
+    { id:"talk-1", kind:"talk", title:"Perkenalan diri", glyph:"話", soon:true }
+  ]}
+];
+const LESSONS = COURSE.flatMap(u=>u.lessons.map(l=>({...l,unit:u.id})));
+const ITEMS = {}; LESSONS.forEach(l=>(l.items||[]).forEach(it=>ITEMS[it.id]={...it,kind:l.kind,lesson:l.id}));
+
+/* ============================================================
+   DATA — disimpan di perangkat dan (bila tersedia) di akun.
+   ============================================================ */
+const LS_KEY="nihongo-harian-v1";
+const blank=()=>({v:1,goalMin:30,days:{},lessons:{},items:{},updatedAt:0});
+let S=blank();
+try{const raw=localStorage.getItem(LS_KEY); if(raw) S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
+
+const pad=n=>String(n).padStart(2,"0");
+const keyOf=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const todayKey=()=>keyOf(new Date());
+const dayRec=k=>S.days[k]||(S.days[k]={sec:0,right:0,wrong:0,lessons:[]});
+
+function merge(a,b){ // gabung dua salinan: ambil nilai terbesar, tidak ada yang hilang
+  const m=blank(); m.goalMin=(a.updatedAt>=b.updatedAt?a:b).goalMin||30;
+  m.updatedAt=Math.max(a.updatedAt||0,b.updatedAt||0);
+  for(const k of new Set([...Object.keys(a.days||{}),...Object.keys(b.days||{})])){
+    const x=a.days?.[k]||{},y=b.days?.[k]||{};
+    m.days[k]={sec:Math.max(x.sec||0,y.sec||0),right:Math.max(x.right||0,y.right||0),wrong:Math.max(x.wrong||0,y.wrong||0),sRight:Math.max(x.sRight||0,y.sRight||0),sWrong:Math.max(x.sWrong||0,y.sWrong||0),lessons:[...new Set([...(x.lessons||[]),...(y.lessons||[])])]};
+  }
+  for(const k of new Set([...Object.keys(a.lessons||{}),...Object.keys(b.lessons||{})])){
+    const x=a.lessons?.[k]||{},y=b.lessons?.[k]||{};
+    m.lessons[k]={times:Math.max(x.times||0,y.times||0),best:Math.max(x.best||0,y.best||0),last:Math.max(x.last||0,y.last||0)};
+  }
+  for(const k of new Set([...Object.keys(a.items||{}),...Object.keys(b.items||{})])){
+    const x=a.items?.[k]||{},y=b.items?.[k]||{};
+    const pick=(x.last||0)>=(y.last||0)?x:y;
+    m.items[k]={right:Math.max(x.right||0,y.right||0),wrong:Math.max(x.wrong||0,y.wrong||0),streak:pick.streak||0,last:pick.last||0,sRight:Math.max(x.sRight||0,y.sRight||0),sWrong:Math.max(x.sWrong||0,y.sWrong||0)};
+  }
+  return m;
+}
+
+let cloud=null, cloudBusy=false, cloudDirty=false, cloudTimer=null, cloudState="lokal";
+function save(urgent){
+  S.updatedAt=Date.now();
+  try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){}
+  cloudDirty=true;
+  clearTimeout(cloudTimer);
+  cloudTimer=setTimeout(pushCloud,urgent?500:15000);
+}
+async function pushCloud(){
+  if(!cloud||!cloudDirty||cloudBusy) return;
+  cloudBusy=true; cloudDirty=false;
+  try{await cloud.set(JSON.parse(JSON.stringify(S))); cloudState="akun";}
+  catch(e){cloudDirty=true; cloudState="lokal";}
+  cloudBusy=false; if(cloudDirty) cloudTimer=setTimeout(pushCloud,15000);
+}
+(async()=>{
+  try{
+    if(!window.claude?.use) return;
+    const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);
+    if(!db||!user) return;
+    const id=await user.id(); if(!id) return;
+    const ref=db.doc("data/users/"+id+"/state");
+    const snap=await ref.get();
+    if(snap.exists){ S=merge(S,snap.data()); try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){} }
+    cloud=ref; cloudState="akun"; cloudDirty=true; pushCloud(); render();
+  }catch(e){}
+})();
+document.addEventListener("visibilitychange",()=>{ if(document.hidden){ clearTimeout(cloudTimer); pushCloud(); } });
+
+/* ============================================================
+   TIMER BELAJAR — berjalan saat pelajaran/ulangi dibuka atau sesi bebas aktif,
+   berhenti otomatis saat aplikasi ditutup/di latar belakang.
+   ============================================================ */
+let freeSession=false, inLayer=false, lastTick=Date.now(), sinceSave=0, goalToastDay=null;
+const isRunning=()=> (freeSession||inLayer) && !document.hidden;
+setInterval(()=>{
+  const now=Date.now(); const dt=Math.min(5,(now-lastTick)/1000); lastTick=now;
+  if(!isRunning()) return;
+  const d=dayRec(todayKey()); const before=d.sec; d.sec+=dt; sinceSave+=dt;
+  const goal=S.goalMin*60;
+  if(before<goal && d.sec>=goal && goalToastDay!==todayKey()){ goalToastDay=todayKey(); toast("Target "+S.goalMin+" menit hari ini tercapai. お疲れさま!"); save(true); }
+  if(sinceSave>=20){sinceSave=0; save();}
+  updateClock();
+},1000);
+
+function fmtClock(sec){sec=Math.floor(sec); return Math.floor(sec/60)+":"+pad(sec%60);}
+function updateClock(){
+  const d=S.days[todayKey()]; const sec=d?d.sec:0;
+  document.querySelectorAll("[data-clock]").forEach(el=>el.textContent=fmtClock(sec));
+  const ring=document.getElementById("ringArc");
+  if(ring){ const p=Math.min(1,sec/(S.goalMin*60)); ring.setAttribute("stroke-dashoffset",String(RING_C*(1-p))); }
+  const left=document.getElementById("leftTxt");
+  if(left) left.textContent=leftText(sec);
+}
+const RING_C=2*Math.PI*56;
+function leftText(sec){const r=S.goalMin*60-sec; return r<=0?"Target hari ini tercapai":"Sisa "+Math.ceil(r/60)+" menit lagi";}
+
+/* ============================================================
+   STREAK & STATISTIK
+   ============================================================ */
+function met(k){return (S.days[k]?.sec||0)>=S.goalMin*60;}
+function streak(){
+  const d=new Date(); let n=0;
+  if(!met(keyOf(d))) d.setDate(d.getDate()-1);
+  while(met(keyOf(d))){n++; d.setDate(d.getDate()-1);}
+  return n;
+}
+function bestStreak(){
+  const keys=Object.keys(S.days).filter(met).sort(); let best=0,run=0,prev=null;
+  for(const k of keys){ const t=new Date(k+"T00:00"); if(prev&&(t-prev)/864e5<1.5) run++; else run=1; best=Math.max(best,run); prev=t; }
+  return best;
+}
+function weakItems(){
+  return Object.entries(S.items)
+    .filter(([id,s])=>ITEMS[id] && s.wrong>0 && (s.streak||0)<3)
+    .map(([id,s])=>({id,score:s.wrong*2-s.right*0.5-(s.streak||0)*2+((Date.now()-(s.last||0))/864e5)*0.2}))
+    .sort((a,b)=>b.score-a.score).map(x=>x.id);
+}
+
+/* ============================================================
+   TAMPILAN
+   ============================================================ */
+let tab="home";
+const TABS=[["home","家","Beranda"],["learn","学","Pelajaran"],["review","復","Ulangi"],["stats","績","Progres"]];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const WD=[["Min","日"],["Sen","月"],["Sel","火"],["Rab","水"],["Kam","木"],["Jum","金"],["Sab","土"]];
+
+function render(){
+  document.getElementById("tabs").innerHTML=TABS.map(([id,k,l])=>`<button class="tab" data-tab="${id}" ${tab===id?'aria-current="page"':""}><span class="k">${k}</span>${l}</button>`).join("");
+  const app=document.getElementById("app");
+  app.innerHTML=`<div class="wrap">${({home:viewHome,learn:viewLearn,review:viewReview,stats:viewStats})[tab]()}<p class="syncnote">${cloudState==="akun"?"Progres tersimpan di akun kamu":"Progres tersimpan di perangkat ini"}</p></div>`;
+  updateClock();
+}
+
+function nextLesson(){ return LESSONS.find(l=>!l.soon && !S.lessons[l.id]) || LESSONS.find(l=>!l.soon); }
+
+function viewHome(){
+  const sec=S.days[todayKey()]?.sec||0, st=streak(), weak=weakItems().length, nl=nextLesson();
+  const now=new Date(); const mon=new Date(now); mon.setDate(now.getDate()-((now.getDay()+6)%7));
+  const week=[...Array(7)].map((_,i)=>{const d=new Date(mon); d.setDate(mon.getDate()+i); const k=keyOf(d); const s=S.days[k]?.sec||0;
+    const cls=s>=S.goalMin*60?"full":s>0?"part":""; const [id,jp]=WD[d.getDay()];
+    return `<div class="day"><span class="stamp ${cls} ${k===todayKey()?"now":""}" aria-label="${id}: ${Math.round(s/60)} menit">済</span>${id}<span class="jp">${jp}</span></div>`;}).join("");
+  return `
+  <header class="row between"><div><div class="eyebrow">${now.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"})}</div><h1>こんにちは!</h1></div>
+    <span class="chip shu num" title="Hari berturut-turut mencapai target">${st} hari beruntun</span></header>
+  <section class="card today">
+    <div class="ring"><svg viewBox="0 0 132 132" aria-hidden="true"><circle cx="66" cy="66" r="56" fill="none" stroke="var(--surface-2)" stroke-width="12"/>
+      <circle id="ringArc" cx="66" cy="66" r="56" fill="none" stroke="var(--ai)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${RING_C}" stroke-dashoffset="${RING_C}"/></svg>
+      <div class="center"><span class="big num" data-clock>0:00</span><span class="muted" style="font-size:12px">dari ${S.goalMin}:00</span></div></div>
+    <div class="today-info"><h2>Belajar hari ini</h2><span class="muted" id="leftTxt">${leftText(sec)}</span>
+      <button class="btn ${freeSession?"":"primary"}" data-act="free">${freeSession?"Jeda sesi bebas":"Mulai sesi bebas"}</button>
+      <span class="muted" style="font-size:12px">Timer juga berjalan otomatis saat pelajaran dibuka.</span></div>
+  </section>
+  <section class="card" style="display:grid;gap:12px"><div class="row between"><h2>Minggu ini</h2><span class="muted" style="font-size:13px">Cap 済 = target tercapai</span></div><div class="week">${week}</div></section>
+  <button class="action" data-lesson="${nl.id}"><span class="glyph">${nl.glyph}</span><span class="txt"><span class="eyebrow">${S.lessons[nl.id]?"Ulangi pelajaran":"Lanjutkan"}</span><b>${esc(nl.title)}</b><span class="muted" style="font-size:13px">${nl.items.length} materi · sekitar 5 menit</span></span><span class="go">›</span></button>
+  <button class="action" data-act="review"><span class="glyph" style="background:var(--bad-soft);color:var(--bad)">復</span><span class="txt"><span class="eyebrow">Ulangi</span><b>${weak?weak+" materi perlu dilatih lagi":"Belum ada materi yang sering salah"}</b><span class="muted" style="font-size:13px">Materi yang paling sering salah muncul lebih dulu</span></span><span class="go">›</span></button>`;
+}
+
+function viewLearn(){
+  return `<header><div class="eyebrow">Semua pelajaran bisa diulang kapan saja</div><h1>Pelajaran</h1></header>`+
+  COURSE.map(u=>{const avail=u.lessons.filter(l=>!l.soon), done=avail.filter(l=>S.lessons[l.id]).length;
+    return `<section class="unit"><div class="unit-head"><h2>${esc(u.title)}</h2><span class="muted" style="font-size:13px">${avail.length?`${done}/${avail.length} selesai`:esc(u.sub)}</span></div>`+
+    (u.table?`<button class="btn" data-act="table" data-script="${u.table}" style="justify-self:start">Lihat tabel ${esc(u.title.toLowerCase())}</button>`:"")+
+    u.lessons.map(l=>{const p=S.lessons[l.id];
+      if(l.soon) return `<div class="lesson locked"><span class="ico jp">${l.glyph}</span><span class="txt"><b>${esc(l.title)}</b><div class="meta">Segera hadir</div></span></div>`;
+      return `<div class="lesson-row"><button class="lesson ${p?"done":""}" data-lesson="${l.id}"><span class="ico jp">${l.glyph}</span><span class="txt"><b class="jp-mix">${esc(l.title)}</b><div class="meta">${p?`Selesai ${p.times}× · nilai terbaik ${p.best}%`:`${l.items.length} materi · belum dimulai`}</div></span><span class="muted">${p?"Ulangi ›":"Mulai ›"}</span></button>`+
+        (p?`<button class="lesson-mic" data-act="speak-lesson" data-id="${l.id}" aria-label="Latihan bicara: ${esc(l.title)}">${MIC_SVG}</button>`:"")+`</div>`;}).join("")+`</section>`;}).join("");
+}
+
+function viewReview(){
+  const weak=weakItems(); const seen=Object.keys(S.items).filter(id=>ITEMS[id]);
+  const list=weak.slice(0,12).map(id=>{const it=ITEMS[id],s=S.items[id];return `<div class="hist-row"><span><span class="jp" style="font-size:20px;font-weight:700">${it.jp}</span> <span class="muted">${esc(it.arti||it.romaji)}</span></span><span class="num" style="color:var(--bad)">${s.wrong}× salah</span><span class="num muted">${s.right}× benar</span></div>`;}).join("");
+  return `<header><div class="eyebrow">Latihan ulang</div><h1>Ulangi</h1></header>
+  <section class="card" style="display:grid;gap:12px">
+    <p style="margin:0">${weak.length?`Ada <b>${weak.length}</b> materi yang masih sering salah. Satu sesi berisi sampai 10 soal, dimulai dari yang paling sering salah. Materi hilang dari daftar setelah benar 3 kali berturut-turut.`:seen.length?"Semua materi yang sudah dipelajari sedang aman. Kamu tetap bisa mengulang semua materi secara acak.":"Belum ada data. Selesaikan satu pelajaran dulu, nanti materi yang salah muncul di sini."}</p>
+    <button class="btn primary block" data-act="review" ${weak.length?"":"hidden"}>Mulai latihan materi lemah</button>
+    <button class="btn block" data-act="review-all" ${seen.length?"":"disabled"}>Ulangi acak semua materi</button>
+  </section>
+  ${weak.length?`<section class="card"><h2 style="margin-bottom:6px">Paling sering salah</h2><div class="hist">${list}</div></section>`:""}`;
+}
+
+function viewStats(){
+  const days=Object.entries(S.days); const totalMin=Math.round(days.reduce((a,[,d])=>a+d.sec,0)/60);
+  const metDays=days.filter(([k])=>met(k)).length; const r=days.reduce((a,[,d])=>a+d.right,0), w=days.reduce((a,[,d])=>a+d.wrong,0);
+  const hist=days.sort((a,b)=>b[0]<a[0]?-1:1).slice(0,14).map(([k,d])=>{const dt=new Date(k+"T00:00");
+    return `<div class="hist-row"><span>${dt.toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"})}${d.lessons.length?` <span class="muted">· ${d.lessons.length} pelajaran</span>`:""}</span><span class="num">${Math.round(d.sec/60)} mnt</span>${met(k)?'<span class="chip good">Tercapai</span>':'<span class="chip">Belum</span>'}</div>`;}).join("");
+  return `<header class="row between"><div><div class="eyebrow">Riwayat belajar</div><h1>Progres</h1></div>
+    <label class="muted" style="font-size:13px;display:grid;gap:2px">Target harian<select id="goalSel">${[15,30,45,60].map(m=>`<option value="${m}" ${m===S.goalMin?"selected":""}>${m} menit</option>`).join("")}</select></label></header>
+  <div class="stats">
+    <div class="stat"><span class="muted">Streak sekarang</span><b class="num" style="color:var(--shu)">${streak()} hari</b></div>
+    <div class="stat"><span class="muted">Streak terbaik</span><b class="num">${bestStreak()} hari</b></div>
+    <div class="stat"><span class="muted">Total belajar</span><b class="num">${totalMin>=60?Math.floor(totalMin/60)+" j "+totalMin%60+" m":totalMin+" mnt"}</b></div>
+    <div class="stat"><span class="muted">Ketepatan jawaban</span><b class="num">${r+w?Math.round(r/(r+w)*100)+"%":"–"}</b></div>
+  </div>
+  <section class="card chart" style="display:grid;gap:8px"><div class="row between"><h2>14 hari terakhir</h2><span class="muted" style="font-size:13px">${metDays} hari capai target</span></div>${chart()}</section>
+  <section class="card"><h2 style="margin-bottom:6px">Catatan harian</h2>${hist?`<div class="hist">${hist}</div>`:'<p class="muted" style="margin:0">Belum ada catatan. Mulai pelajaran atau sesi bebas, waktumu tercatat otomatis.</p>'}</section>`;
+}
+
+function chart(){
+  const N=14,W=340,H=170,L=30,R=6,T=12,B=26; const goal=S.goalMin;
+  const data=[...Array(N)].map((_,i)=>{const d=new Date(); d.setDate(d.getDate()-(N-1-i)); const k=keyOf(d); return {k,d,m:(S.days[k]?.sec||0)/60};});
+  const max=Math.max(goal*1.5,...data.map(x=>x.m)); const top=Math.ceil(max/30)*30;
+  const y=v=>T+(H-T-B)*(1-v/top); const bw=(W-L-R)/N;
+  const ticks=[0,top/2,top].map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(v)}</text>`).join("");
+  const bars=data.map((x,i)=>{const h=Math.max(x.m>0?2:0,y(0)-y(x.m)); const isT=i===N-1;
+    const fill=x.m>=goal?"var(--ai)":"var(--ai-soft)";
+    return `<rect x="${L+i*bw+bw*0.18}" y="${y(0)-h}" width="${bw*0.64}" height="${h}" rx="3" fill="${fill}"/>`+
+      `<text x="${L+i*bw+bw/2}" y="${H-8}" text-anchor="middle" font-size="10" fill="${isT?"var(--fg)":"var(--muted)"}" font-weight="${isT?700:400}">${x.d.getDate()}</text>`;}).join("");
+  const gl=`<line x1="${L}" x2="${W-R}" y1="${y(goal)}" y2="${y(goal)}" stroke="var(--shu)" stroke-dasharray="4 4" stroke-width="1.5"/><text x="${W-R}" y="${y(goal)-5}" text-anchor="end" font-size="10" fill="var(--shu)" font-weight="700">target ${goal} mnt</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Menit belajar per hari, 14 hari terakhir">${ticks}${bars}${gl}</svg>`;
+}
+
+/* ============================================================
+   SUARA (TTS) — dipakai juga di langkah 2 & 4
+   ============================================================ */
+let jaVoice=null;
+function loadVoice(){try{jaVoice=speechSynthesis.getVoices().find(v=>/^ja/i.test(v.lang))||null;}catch(e){}}
+if("speechSynthesis" in window){loadVoice(); speechSynthesis.onvoiceschanged=loadVoice;}
+function speak(text){
+  try{ if(!("speechSynthesis" in window)) throw 0; speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text); u.lang="ja-JP"; u.rate=.85; if(jaVoice) u.voice=jaVoice; speechSynthesis.speak(u);
+    if(!jaVoice && !speak.warned) setTimeout(()=>{loadVoice(); if(!jaVoice && !speak.warned){speak.warned=true; toast("Suara Jepang belum terpasang di perangkat ini. Pasang 'Japanese' di pengaturan Text-to-Speech HP.");}},800);
+  }catch(e){toast("Perangkat ini belum mendukung suara.");}
+}
+
+/* ============================================================
+   SESI PELAJARAN / ULANGI
+   ============================================================ */
+let Q=null; // {mode, lesson, steps:[{type:"learn"|"quiz"|"speak", item, ...}], i, right, wrong, answered}
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+
+/* ---------- Pengenalan suara (latihan bicara) ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let micBlocked=false, rec=null;
+const toHira=s=>s.replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+const clean=s=>toHira(String(s).toLowerCase()).replace(/[\s、。！？!?,.・ー〜~「」]/g,"");
+function listen(st){
+  if(!SR||micBlocked) return;
+  try{rec&&rec.abort();}catch(e){}
+  rec=new SR(); rec.lang="ja-JP"; rec.maxAlternatives=5; rec.interimResults=false; rec.continuous=false;
+  st.listening=true; st.heard=null; st.ok=null; st.err=null; renderLayer();
+  let got=false;
+  rec.onresult=ev=>{
+    got=true; const alts=[...ev.results[0]].map(a=>a.transcript);
+    const target=clean(st.item.jp), rom=st.item.romaji.toLowerCase();
+    const ok=alts.some(a=>{const c=clean(a); return c.includes(target)||c===rom||c===rom+rom;});
+    st.heard=alts[0]||""; st.ok=ok; st.tries=(st.tries||0)+1;
+    if(st.tries===1||ok) recordSpeech(st.item,ok);
+  };
+  rec.onerror=ev=>{
+    if(ev.error==="not-allowed"||ev.error==="service-not-allowed"){micBlocked=true; st.err="blocked";}
+    else if(ev.error==="no-speech") st.err="nospeech";
+    else if(ev.error!=="aborted") st.err="other";
+  };
+  rec.onend=()=>{ st.listening=false; if(!got&&!st.err) st.err="nospeech"; if(Q&&Q.steps[Q.i]===st) renderLayer(); };
+  try{rec.start();}catch(e){st.listening=false; st.err="other"; renderLayer();}
+}
+function recordSpeech(item,ok){
+  const s=S.items[item.id]||(S.items[item.id]={right:0,wrong:0,streak:0,last:0});
+  ok?s.sRight=(s.sRight||0)+1:s.sWrong=(s.sWrong||0)+1;
+  const d=dayRec(todayKey()); ok?d.sRight=(d.sRight||0)+1:d.sWrong=(d.sWrong||0)+1;
+  ok?Q.sRight++:Q.sWrong++; save();
+}
+
+function makeQuiz(item){
+  const pool=Object.values(ITEMS).filter(x=>x.kind===item.kind&&x.id!==item.id&&(item.kind!=="kana"||x.id[0]===item.id[0]));
+  const reverse=item.kind==="vocab"&&Math.random()<.5;
+  const label=x=>item.kind==="kana"?x.romaji:reverse?x.jp:x.arti;
+  // pengecoh diutamakan dari pelajaran yang sama supaya kuis tetap menantang
+  const near=shuffle(pool.filter(x=>x.lesson===item.lesson)), far=shuffle(pool.filter(x=>x.lesson!==item.lesson));
+  const distract=[...near,...far].map(label).filter((v,i,a)=>v!==label(item)&&a.indexOf(v)===i).slice(0,3);
+  return {type:"quiz",item,reverse,answer:label(item),options:shuffle([label(item),...distract]),jpOpts:reverse};
+}
+function speakSteps(items){ return SR&&!micBlocked ? shuffle(items).map(x=>({type:"speak",item:ITEMS[x.id]})) : []; }
+function newQ(o){return Object.assign({i:0,right:0,wrong:0,sRight:0,sWrong:0,answered:null},o);}
+function startLesson(id){
+  const l=LESSONS.find(x=>x.id===id); if(!l||l.soon) return;
+  const learn=l.items.map(item=>({type:"learn",item:ITEMS[item.id]}));
+  const quiz=shuffle(l.items).map(x=>makeQuiz(ITEMS[x.id]));
+  Q=newQ({mode:"lesson",lesson:l,steps:[...learn,...quiz,...speakSteps(l.items)]});
+  openLayer();
+}
+function startSpeak(id){
+  const l=LESSONS.find(x=>x.id===id); if(!l||l.soon) return;
+  if(!SR||micBlocked){toast(micMsg()); return;}
+  Q=newQ({mode:"speak",lesson:{...l,title:"Latihan bicara · "+l.title},steps:speakSteps(l.items)});
+  openLayer();
+}
+function startReview(all){
+  let ids=all?shuffle(Object.keys(S.items).filter(id=>ITEMS[id])):weakItems();
+  ids=ids.slice(0,10); if(!ids.length) return;
+  Q=newQ({mode:"review",lesson:{title:all?"Ulangi acak":"Ulangi materi lemah"},steps:ids.map(id=>makeQuiz(ITEMS[id]))});
+  openLayer();
+}
+function openTable(script){
+  const u=COURSE.find(c=>c.table===script);
+  Q=newQ({mode:"table",lesson:{title:"Tabel "+u.title},rows:u.lessons.map(l=>l.items),steps:[]});
+  openLayer();
+}
+const micMsg=()=>SR?"Mikrofon tidak diizinkan di halaman ini. Latihan bicara berjalan di versi aplikasi dari GitHub.":"Browser ini belum mendukung pengenalan suara. Pakai Chrome di Android.";
+function openLayer(){inLayer=true; lastTick=Date.now(); document.getElementById("layer").hidden=false; document.body.style.overflow="hidden"; renderLayer();}
+function closeLayer(){try{rec&&rec.abort();}catch(e){} inLayer=false; Q=null; const el=document.getElementById("layer"); el.hidden=true; el.innerHTML=""; document.body.style.overflow=""; save(true); render();}
+
+function recordAnswer(item,ok){
+  const s=S.items[item.id]||(S.items[item.id]={right:0,wrong:0,streak:0,last:0});
+  if(ok){s.right++; s.streak=(s.streak||0)+1;} else {s.wrong++; s.streak=0;}
+  s.last=Date.now(); const d=dayRec(todayKey()); ok?d.right++:d.wrong++;
+  ok?Q.right++:Q.wrong++; save();
+}
+function finish(){
+  const total=Q.right+Q.wrong, sTotal=Q.sRight+Q.sWrong;
+  const pct=total?Math.round(Q.right/total*100):sTotal?Math.round(Q.sRight/sTotal*100):0;
+  if(Q.mode==="lesson"){
+    const p=S.lessons[Q.lesson.id]||(S.lessons[Q.lesson.id]={times:0,best:0,last:0});
+    p.times++; p.best=Math.max(p.best,pct); p.last=Date.now();
+    const d=dayRec(todayKey()); if(!d.lessons.includes(Q.lesson.id)) d.lessons.push(Q.lesson.id);
+  }
+  save(true); Q.done=pct; renderLayer();
+}
+
+function speakBody(st){
+  const it=st.item, isWord=it.jp.length>1;
+  let status;
+  if(micBlocked||st.err==="blocked") status=`<div class="feedback wrong">${micMsg()}</div>`;
+  else if(st.listening) status=`<div class="feedback" style="background:var(--ai-soft);color:var(--ai)">Mendengarkan… ucapkan sekarang</div>`;
+  else if(st.err==="nospeech") status=`<div class="feedback wrong">Suara tidak terdengar. Tekan mikrofon lalu ucapkan lebih jelas.</div>`;
+  else if(st.err==="other") status=`<div class="feedback wrong">Pengenalan suara gagal. Periksa koneksi internet lalu coba lagi.</div>`;
+  else if(st.ok===true) status=`<div class="feedback right">Benar! Terdengar 「${esc(st.heard)}」. 上手!</div>`;
+  else if(st.ok===false) status=`<div class="feedback wrong">Terdengar 「${esc(st.heard)}」, belum cocok dengan ${it.jp} (${esc(it.romaji)}). Dengarkan contohnya, lalu coba lagi.${it.kind==="kana"?" Untuk satu huruf, coba ucapkan dua kali: “"+esc(it.romaji)+", "+esc(it.romaji)+"”.":""}</div>`;
+  else status=`<p class="muted" style="margin:0;text-align:center">Tekan mikrofon, lalu ucapkan dengan suara jelas.</p>`;
+  return `<div class="eyebrow">Bicara · ucapkan ${it.kind==="kana"?"huruf":"kata"} ini</div>
+  <div class="flash"><div class="glyph ${isWord?"word":""}">${it.jp}</div><div class="romaji">${esc(it.romaji)}</div><button class="speak" data-say="${esc(it.jp)}">Dengar contoh ▸</button></div>
+  <div style="display:grid;justify-items:center"><button class="mic ${st.listening?"on":""}" data-act="listen" ${micBlocked||st.listening?"disabled":""} aria-label="Tekan untuk bicara">${MIC_SVG}</button></div>
+  ${status}`;
+}
+const MIC_SVG=`<svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+function tableRows(rows){ // susun seperti tabel gojūon: や _ ゆ _ よ, わ _ _ _ を, lalu ん
+  const out=[]; for(const r of rows){
+    if(r[0].romaji==="ya") out.push([r[0],null,r[1],null,r[2]]);
+    else if(r[0].romaji==="wa"){ out.push([r[0],null,null,null,r[1]]); out.push([r[2],null,null,null,null]); }
+    else out.push(r);
+  } return out;
+}
+function renderLayer(){
+  const el=document.getElementById("layer"); if(!Q){el.hidden=true;return;}
+  el.className="layer";
+  const n=Q.steps.length, prog=Q.mode==="table"||Q.done!=null?100:Math.round(Q.i/n*100);
+  let body="",foot="";
+  if(Q.mode==="table"){
+    body=`<p class="muted" style="margin:0">Ketuk huruf untuk mendengar bunyinya.</p><div class="ktable">${tableRows(Q.rows).map(r=>`<div class="krow">${r.map(it=>!it?`<span></span>`:`<button class="kcell" data-say="${esc(it.jp)}"><span class="jp">${it.jp}</span><small>${esc(it.romaji)}</small></button>`).join("")}</div>`).join("")}</div>`;
+    foot=`<button class="btn primary block" data-act="close">Tutup</button>`;
+  } else if(Q.done!=null){
+    const msg=Q.done>=90?"Hebat! すごい!":Q.done>=60?"Bagus, terus latihan.":"Tidak apa-apa, ulangi sekali lagi ya.";
+    const parts=[]; if(Q.right+Q.wrong) parts.push(`Kuis: ${Q.right} benar · ${Q.wrong} salah`); if(Q.sRight+Q.sWrong) parts.push(`Bicara: ${Q.sRight} dari ${Q.sRight+Q.sWrong} langsung tepat`);
+    body=`<div class="result"><div class="hanko">${Q.done>=60?"済":"復"}</div><div class="score num">${Q.done}%</div><h2>${msg}</h2>${parts.map(p=>`<p class="muted" style="margin:0">${p}</p>`).join("")}${Q.wrong?`<p class="muted" style="margin:0">Jawaban kuis yang salah otomatis masuk menu Ulangi.</p>`:""}</div>`;
+    const again=Q.mode==="lesson"?`<button class="btn block" data-act="again">Ulangi pelajaran ini</button>`:Q.mode==="speak"?`<button class="btn block" data-act="again-speak">Latihan bicara lagi</button>`:`<button class="btn block" data-act="again-review">Latihan lagi</button>`;
+    foot=`<div style="display:grid;gap:10px">${again}<button class="btn primary block" data-act="close">Selesai</button></div>`;
+  } else {
+    const st=Q.steps[Q.i], it=st.item, isWord=it.jp.length>1, nextType=Q.steps[Q.i+1]?.type;
+    const nextLabel=Q.i===n-1?"Lihat hasil":nextType!==st.type?(nextType==="quiz"?"Mulai kuis":"Mulai latihan bicara"):"Berikutnya";
+    if(st.type==="learn"){
+      body=`<div class="eyebrow">Kenali · ${Q.i+1} dari ${Q.lesson.items.length}</div>
+      <div class="flash"><div class="glyph ${isWord?"word":""}">${it.jp}</div><div class="romaji">${esc(it.romaji)}</div>${it.arti?`<div style="font-size:18px;font-weight:600">${esc(it.arti)}</div>`:""}${it.tip?`<div class="tip">${esc(it.tip)}</div>`:""}
+      <button class="speak" data-say="${esc(it.jp)}">Dengar ▸</button></div>`;
+      foot=`<button class="btn primary block" data-act="next">${nextLabel}</button>`;
+    } else if(st.type==="speak"){
+      body=speakBody(st);
+      const tried=st.ok!=null||micBlocked;
+      foot=micBlocked?`<button class="btn primary block" data-act="skip-speak">Lewati latihan bicara</button>`:`<button class="btn ${tried?"primary":""} block" data-act="next">${tried?nextLabel:"Lewati"}</button>`;
+    } else {
+      const a=Q.answered;
+      const prompt=st.reverse?`<div style="font-size:24px;font-weight:700">${esc(it.arti)}</div>`:`<div class="glyph ${isWord?"word":""}">${it.jp}</div>`;
+      const ask=it.kind==="kana"?"Bagaimana cara membaca huruf ini?":st.reverse?"Pilih bahasa Jepangnya":"Apa artinya?";
+      body=`<div class="eyebrow">Kuis · ${ask}</div><div class="flash">${prompt}${st.reverse?"":`<button class="speak" data-say="${esc(it.jp)}">Dengar ▸</button>`}</div>
+      <div class="opts">${st.options.map(o=>{let c=""; if(a){ if(o===st.answer)c="right"; else if(o===a)c="wrong"; }
+        return `<button class="opt ${st.jpOpts?"jp":""} ${c}" data-opt="${esc(o)}" ${a?"disabled":""}>${esc(o)}</button>`;}).join("")}</div>
+      ${a?`<div class="feedback ${a===st.answer?"right":"wrong"}">${a===st.answer?"Benar!":`Belum tepat. ${it.jp} = ${esc(it.romaji)}${it.arti?" ("+esc(it.arti)+")":""}`}</div>`:""}`;
+      foot=`<button class="btn primary block" data-act="next" ${a?"":"disabled"}>${nextLabel}</button>`;
+    }
+  }
+  el.innerHTML=`<div class="layer-top"><button class="x" data-act="close" aria-label="Tutup">✕</button><div class="bar"><i style="width:${prog}%"></i></div><span class="chip num" data-clock>0:00</span></div>
+  <div class="layer-body"><div><h2 class="muted" style="font-size:14px;font-weight:600">${esc(Q.lesson.title)}</h2>${body}</div></div><div class="layer-foot"><div>${foot}</div></div>`;
+  updateClock();
+}
+
+/* ============================================================
+   INTERAKSI
+   ============================================================ */
+function toast(msg){const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,3500);}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button,[data-tab]"); if(!b) return;
+  if(b.dataset.tab){tab=b.dataset.tab; render(); window.scrollTo(0,0); return;}
+  if(b.dataset.lesson){startLesson(b.dataset.lesson); return;}
+  if(b.dataset.say){speak(b.dataset.say); return;}
+  if(b.dataset.opt!=null && Q && !Q.answered){
+    const st=Q.steps[Q.i]; Q.answered=b.dataset.opt; const ok=Q.answered===st.answer; recordAnswer(st.item,ok);
+    if(!st.reverse) speak(st.item.jp); renderLayer(); return;
+  }
+  const act=b.dataset.act;
+  if(act==="free"){freeSession=!freeSession; lastTick=Date.now(); render(); toast(freeSession?"Sesi bebas berjalan. Waktu belajar dari buku atau video ikut tercatat.":"Sesi bebas dijeda.");}
+  else if(act==="review"){startReview(false);}
+  else if(act==="review-all"){startReview(true);}
+  else if(act==="next"&&Q){try{rec&&rec.abort();}catch(e){} Q.answered=null; Q.i++; if(Q.i>=Q.steps.length) finish(); else renderLayer();}
+  else if(act==="listen"&&Q){listen(Q.steps[Q.i]);}
+  else if(act==="skip-speak"&&Q){Q.steps=Q.steps.filter((s,i)=>i<Q.i||s.type!=="speak"); if(Q.i>=Q.steps.length) finish(); else renderLayer();}
+  else if(act==="speak-lesson"){startSpeak(b.dataset.id);}
+  else if(act==="table"){openTable(b.dataset.script);}
+  else if(act==="again-speak"&&Q){const id=Q.lesson.id; Q=null; startSpeak(id);}
+  else if(act==="close"){closeLayer();}
+  else if(act==="again"&&Q){const id=Q.lesson.id; Q=null; startLesson(id);}
+  else if(act==="again-review"){Q=null; startReview(weakItems().length===0);}
+});
+document.addEventListener("change",e=>{ if(e.target.id==="goalSel"){S.goalMin=+e.target.value; save(true); render();} });
+document.addEventListener("visibilitychange",()=>{lastTick=Date.now();});
+render();
+</script>
