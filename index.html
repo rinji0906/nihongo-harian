@@ -401,6 +401,7 @@ function viewStats(){
     <div class="stat"><span class="muted">Ketepatan jawaban</span><b class="num">${r+w?Math.round(r/(r+w)*100)+"%":"–"}</b></div>
   </div>
   <section class="card chart" style="display:grid;gap:8px"><div class="row between"><h2>14 hari terakhir</h2><span class="muted" style="font-size:13px">${metDays} hari capai target</span></div>${chart()}</section>
+  ${voiceCard()}
   <section class="card"><h2 style="margin-bottom:6px">Catatan harian</h2>${hist?`<div class="hist">${hist}</div>`:'<p class="muted" style="margin:0">Belum ada catatan. Mulai pelajaran atau sesi bebas, waktumu tercatat otomatis.</p>'}</section>`;
 }
 
@@ -421,14 +422,33 @@ function chart(){
 /* ============================================================
    SUARA (TTS) — dipakai juga di langkah 2 & 4
    ============================================================ */
-let jaVoice=null;
-function loadVoice(){try{jaVoice=speechSynthesis.getVoices().find(v=>/^ja/i.test(v.lang))||null;}catch(e){}}
-if("speechSynthesis" in window){loadVoice(); speechSynthesis.onvoiceschanged=loadVoice;}
+let jaVoice=null, voiceCount=0, lastTts="", curUtt=null;
+function loadVoice(){try{const vs=speechSynthesis.getVoices(); voiceCount=vs.length; jaVoice=vs.find(v=>/^ja([-_]|$)/i.test(v.lang))||null;}catch(e){}}
+if("speechSynthesis" in window){loadVoice(); try{speechSynthesis.addEventListener("voiceschanged",loadVoice);}catch(e){speechSynthesis.onvoiceschanged=loadVoice;}}
 function speak(text){
-  try{ if(!("speechSynthesis" in window)) throw 0; speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text); u.lang="ja-JP"; u.rate=.85; if(jaVoice) u.voice=jaVoice; speechSynthesis.speak(u);
-    if(!jaVoice && !speak.warned) setTimeout(()=>{loadVoice(); if(!jaVoice && !speak.warned){speak.warned=true; toast("Suara Jepang belum terpasang di perangkat ini. Pasang 'Japanese' di pengaturan Text-to-Speech HP.");}},800);
-  }catch(e){toast("Perangkat ini belum mendukung suara.");}
+  if(!("speechSynthesis" in window)){lastTts="Browser tidak mendukung suara"; toast("Browser ini belum mendukung suara. Pakai Chrome."); return;}
+  try{
+    loadVoice();
+    const ss=speechSynthesis; if(ss.speaking||ss.pending) ss.cancel(); ss.resume();
+    const u=new SpeechSynthesisUtterance(text); u.lang="ja-JP"; u.rate=.85; u.volume=1; if(jaVoice) u.voice=jaVoice;
+    curUtt=u; // simpan referensi: Chrome kadang membuang ucapan yang tidak dirujuk
+    u.onstart=()=>{lastTts="Berhasil diputar";};
+    u.onerror=ev=>{lastTts="Gagal: "+ev.error; if(ev.error!=="interrupted"&&ev.error!=="canceled") toast("Suara gagal diputar ("+ev.error+"). Buka Progres → Tes suara.");};
+    setTimeout(()=>ss.speak(u),60); // jeda kecil setelah cancel, mencegah ucapan tertelan di Chrome Android
+    if(!jaVoice && !speak.warned) setTimeout(()=>{loadVoice(); if(!jaVoice && !speak.warned){speak.warned=true; toast("Suara Jepang belum terpasang di HP ini. Buka Progres → Tes suara untuk caranya.");}},1200);
+  }catch(e){lastTts="Gagal: "+e; toast("Suara gagal diputar. Buka Progres → Tes suara.");}
+}
+function voiceCard(){
+  loadVoice();
+  const ok="speechSynthesis" in window;
+  return `<section class="card" style="display:grid;gap:10px"><div class="row between"><h2>Tes suara</h2><button class="btn primary" data-act="tts-test">Putar こんにちは</button></div>
+  <p class="muted" style="margin:0;font-size:14px" id="ttsInfo">${!ok?"Browser ini tidak mendukung suara.":`${voiceCount} suara terpasang · suara Jepang: <b>${jaVoice?esc(jaVoice.name):"tidak ditemukan"}</b>${lastTts?" · terakhir: "+esc(lastTts):""}`}</p>
+  <details><summary style="cursor:pointer;font-weight:600">Tidak ada suara? Cek ini</summary><ol style="margin:8px 0 0;padding-left:20px;display:grid;gap:4px;font-size:14px">
+    <li>Naikkan <b>volume media</b> (bukan volume dering) dan matikan mode senyap.</li>
+    <li>Buka <b>Setelan HP → Aksesibilitas → Output text-to-speech</b>. Pilih mesin <b>Speech Services by Google</b>.</li>
+    <li>Ketuk ikon roda gigi di sebelahnya → <b>Instal data suara</b> → <b>Japanese (日本語)</b> → unduh.</li>
+    <li>Tutup Chrome sepenuhnya, buka aplikasi lagi, lalu tekan tombol tes di atas.</li>
+  </ol></details></section>`;
 }
 
 /* ============================================================
@@ -610,6 +630,7 @@ document.addEventListener("click",e=>{
   else if(act==="review"){startReview(false);}
   else if(act==="review-all"){startReview(true);}
   else if(act==="next"&&Q){try{rec&&rec.abort();}catch(e){} Q.answered=null; Q.i++; if(Q.i>=Q.steps.length) finish(); else renderLayer();}
+  else if(act==="tts-test"){speak("こんにちは"); setTimeout(()=>{const el=document.getElementById("ttsInfo"); if(el&&tab==="stats") render();},1500);}
   else if(act==="listen"&&Q){listen(Q.steps[Q.i]);}
   else if(act==="skip-speak"&&Q){Q.steps=Q.steps.filter((s,i)=>i<Q.i||s.type!=="speak"); if(Q.i>=Q.steps.length) finish(); else renderLayer();}
   else if(act==="speak-lesson"){startSpeak(b.dataset.id);}
