@@ -144,6 +144,27 @@ select{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--l
 .kcell{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 2px;display:grid;justify-items:center;gap:0}
 .kcell .jp{font-size:24px;font-weight:700;line-height:1.3}
 .kcell small{color:var(--muted);font-size:11px}
+summary.unit-head{cursor:pointer;list-style:none;padding:4px 0}
+summary.unit-head::-webkit-details-marker{display:none}
+summary.unit-head h2::before{content:"▸";display:inline-block;margin-right:8px;color:var(--muted);transition:transform .15s}
+details[open]>summary.unit-head h2::before{transform:rotate(90deg)}
+.unit-body{display:grid;gap:10px;padding-top:8px}
+.plan-item{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-weight:600}
+.plan-item .jp{font-weight:700;color:var(--ai);min-width:1.4em}
+.reading{font-size:15px;color:var(--muted);letter-spacing:.05em}
+.readings{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.readings span{display:grid;justify-items:center}
+.readings small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.readings b{font-size:17px}
+.example{display:flex;gap:12px;align-items:center;justify-content:space-between;text-align:left;background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.pattern{font-size:22px;font-weight:900;color:var(--ai)}
+.blank{color:var(--ai);border-bottom:2px solid var(--ai)}
+.opt.long{font-size:14px}
+.boxes{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.boxes div{background:var(--surface-2);border-radius:8px;padding:6px 0;display:grid}
+.boxes b{font-size:17px}
+.boxes span{font-size:10.5px;color:var(--muted)}
+.action:disabled{opacity:1}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 @media (max-width:360px){.today{grid-template-columns:1fr;justify-items:center}.today-info{justify-items:center;text-align:center}}
 </style>
@@ -153,6 +174,444 @@ select{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--l
 <div id="layer" hidden></div>
 <div id="toast" class="toast" role="status" hidden></div>
 
+<script>
+/* Kosakata JLPT N5. Format baris: tulisan|bacaan kana|arti. Romaji dibuat otomatis dari kana. */
+window.N5_VOCAB = [
+["Orang & keluarga",`私|わたし|saya
+あなた|あなた|kamu, Anda
+人|ひと|orang
+友達|ともだち|teman
+家族|かぞく|keluarga
+父|ちち|ayah (sendiri)
+母|はは|ibu (sendiri)
+兄|あに|kakak laki-laki (sendiri)
+姉|あね|kakak perempuan (sendiri)
+弟|おとうと|adik laki-laki`],
+["Keluarga & pekerjaan",`妹|いもうと|adik perempuan
+子供|こども|anak
+男|おとこ|laki-laki
+女|おんな|perempuan
+お父さん|おとうさん|ayah (orang lain / memanggil)
+お母さん|おかあさん|ibu (orang lain / memanggil)
+先生|せんせい|guru
+学生|がくせい|pelajar, mahasiswa
+医者|いしゃ|dokter
+皆|みんな|semua orang`],
+["Angka 1–10",`一|いち|satu
+二|に|dua
+三|さん|tiga
+四|よん|empat
+五|ご|lima
+六|ろく|enam
+七|なな|tujuh
+八|はち|delapan
+九|きゅう|sembilan
+十|じゅう|sepuluh`],
+["Angka besar & menghitung",`百|ひゃく|seratus
+千|せん|seribu
+万|まん|sepuluh ribu
+一つ|ひとつ|satu (buah)
+二つ|ふたつ|dua (buah)
+三つ|みっつ|tiga (buah)
+四つ|よっつ|empat (buah)
+五つ|いつつ|lima (buah)
+いくつ|いくつ|berapa (buah)
+いくら|いくら|berapa (harga)`],
+["Waktu sehari-hari",`今|いま|sekarang
+今日|きょう|hari ini
+明日|あした|besok
+昨日|きのう|kemarin
+朝|あさ|pagi
+昼|ひる|siang
+夜|よる|malam
+晩|ばん|malam (petang)
+毎日|まいにち|setiap hari
+時間|じかん|waktu, jam (durasi)`],
+["Nama hari & minggu",`月曜日|げつようび|Senin
+火曜日|かようび|Selasa
+水曜日|すいようび|Rabu
+木曜日|もくようび|Kamis
+金曜日|きんようび|Jumat
+土曜日|どようび|Sabtu
+日曜日|にちようび|Minggu
+今週|こんしゅう|minggu ini
+先週|せんしゅう|minggu lalu
+来週|らいしゅう|minggu depan`],
+["Bulan, tahun & musim",`今月|こんげつ|bulan ini
+先月|せんげつ|bulan lalu
+来月|らいげつ|bulan depan
+今年|ことし|tahun ini
+去年|きょねん|tahun lalu
+来年|らいねん|tahun depan
+春|はる|musim semi
+夏|なつ|musim panas
+秋|あき|musim gugur
+冬|ふゆ|musim dingin`],
+["Makanan & minuman",`ご飯|ごはん|nasi, makanan
+パン|パン|roti
+肉|にく|daging
+魚|さかな|ikan
+野菜|やさい|sayur
+果物|くだもの|buah
+卵|たまご|telur
+水|みず|air
+お茶|おちゃ|teh
+コーヒー|コーヒー|kopi`],
+["Waktu makan",`食べる|たべる|makan
+飲む|のむ|minum
+朝ご飯|あさごはん|sarapan
+昼ご飯|ひるごはん|makan siang
+晩ご飯|ばんごはん|makan malam
+料理|りょうり|masakan, memasak
+美味しい|おいしい|enak
+甘い|あまい|manis
+辛い|からい|pedas
+お腹が空く|おなかがすく|lapar`],
+["Di rumah",`家|いえ|rumah
+部屋|へや|kamar
+椅子|いす|kursi
+机|つくえ|meja (belajar)
+窓|まど|jendela
+ドア|ドア|pintu
+ベッド|ベッド|tempat tidur
+テレビ|テレビ|televisi
+電話|でんわ|telepon
+台所|だいどころ|dapur`],
+["Tempat di kota",`学校|がっこう|sekolah
+会社|かいしゃ|perusahaan, kantor
+駅|えき|stasiun
+病院|びょういん|rumah sakit
+銀行|ぎんこう|bank
+郵便局|ゆうびんきょく|kantor pos
+店|みせ|toko
+公園|こうえん|taman
+図書館|としょかん|perpustakaan
+デパート|デパート|department store`],
+["Kendaraan & arah",`車|くるま|mobil
+電車|でんしゃ|kereta
+バス|バス|bus
+自転車|じてんしゃ|sepeda
+飛行機|ひこうき|pesawat
+道|みち|jalan
+右|みぎ|kanan
+左|ひだり|kiri
+前|まえ|depan, sebelum
+後ろ|うしろ|belakang`],
+["Posisi & tempat",`上|うえ|atas
+下|した|bawah
+中|なか|dalam
+外|そと|luar
+隣|となり|sebelah
+近く|ちかく|dekat
+ここ|ここ|sini
+そこ|そこ|situ
+あそこ|あそこ|sana
+どこ|どこ|di mana`],
+["Kata kerja 1",`行く|いく|pergi
+来る|くる|datang
+帰る|かえる|pulang
+する|する|melakukan
+見る|みる|melihat
+聞く|きく|mendengar, bertanya
+読む|よむ|membaca
+書く|かく|menulis
+話す|はなす|berbicara
+買う|かう|membeli`],
+["Kata kerja 2",`起きる|おきる|bangun
+寝る|ねる|tidur
+会う|あう|bertemu
+待つ|まつ|menunggu
+作る|つくる|membuat
+歩く|あるく|berjalan kaki
+走る|はしる|berlari
+泳ぐ|およぐ|berenang
+遊ぶ|あそぶ|bermain
+働く|はたらく|bekerja`],
+["Kata kerja 3",`分かる|わかる|mengerti
+知る|しる|tahu, mengenal
+ある|ある|ada (benda)
+いる|いる|ada (makhluk hidup)
+持つ|もつ|membawa, memegang
+住む|すむ|tinggal
+教える|おしえる|mengajar, memberi tahu
+習う|ならう|belajar (dari orang)
+勉強する|べんきょうする|belajar
+使う|つかう|memakai`],
+["Kata sifat い 1",`大きい|おおきい|besar
+小さい|ちいさい|kecil
+高い|たかい|tinggi, mahal
+安い|やすい|murah
+低い|ひくい|rendah
+長い|ながい|panjang
+短い|みじかい|pendek
+新しい|あたらしい|baru
+古い|ふるい|lama, tua (benda)
+良い|いい|baik, bagus`],
+["Kata sifat い 2",`暑い|あつい|panas (cuaca)
+寒い|さむい|dingin (cuaca)
+暖かい|あたたかい|hangat
+涼しい|すずしい|sejuk
+面白い|おもしろい|menarik, lucu
+楽しい|たのしい|menyenangkan
+難しい|むずかしい|sulit
+易しい|やさしい|mudah
+忙しい|いそがしい|sibuk
+悪い|わるい|buruk`],
+["Kata sifat な",`元気|げんき|sehat, bersemangat
+静か|しずか|tenang, sepi
+賑やか|にぎやか|ramai
+綺麗|きれい|cantik, bersih
+有名|ゆうめい|terkenal
+好き|すき|suka
+嫌い|きらい|tidak suka
+上手|じょうず|pandai
+下手|へた|tidak pandai
+暇|ひま|senggang`],
+["Tubuh",`頭|あたま|kepala
+顔|かお|wajah
+目|め|mata
+耳|みみ|telinga
+口|くち|mulut
+手|て|tangan
+足|あし|kaki
+お腹|おなか|perut
+歯|は|gigi
+体|からだ|badan`],
+["Barang sekolah",`本|ほん|buku
+鞄|かばん|tas
+ペン|ペン|pulpen
+鉛筆|えんぴつ|pensil
+ノート|ノート|buku tulis
+辞書|じしょ|kamus
+新聞|しんぶん|koran
+雑誌|ざっし|majalah
+紙|かみ|kertas
+宿題|しゅくだい|PR, pekerjaan rumah`],
+["Alam & cuaca",`天気|てんき|cuaca
+雨|あめ|hujan
+雪|ゆき|salju
+風|かぜ|angin
+空|そら|langit
+山|やま|gunung
+川|かわ|sungai
+海|うみ|laut
+花|はな|bunga
+木|き|pohon`],
+["Pakaian & warna",`服|ふく|pakaian
+靴|くつ|sepatu
+帽子|ぼうし|topi
+眼鏡|めがね|kacamata
+色|いろ|warna
+赤い|あかい|merah
+青い|あおい|biru
+白い|しろい|putih
+黒い|くろい|hitam
+黄色い|きいろい|kuning`],
+["Kata tanya & ungkapan",`何|なに|apa
+誰|だれ|siapa
+いつ|いつ|kapan
+どうして|どうして|mengapa
+どう|どう|bagaimana
+どれ|どれ|yang mana (dari banyak)
+どちら|どちら|yang mana (dari dua), ke mana (sopan)
+お願いします|おねがいします|tolong, mohon
+いただきます|いただきます|selamat makan
+ごちそうさまでした|ごちそうさまでした|terima kasih atas makanannya`]
+];
+
+</script>
+<script>
+/* Kanji JLPT N5. Format: kanji|onyomi|kunyomi|arti|contoh|bacaan contoh|arti contoh */
+window.N5_KANJI = [
+["Angka",`一|イチ|ひと(つ)|satu|一月|いちがつ|Januari
+二|ニ|ふた(つ)|dua|二人|ふたり|dua orang
+三|サン|みっ(つ)|tiga|三月|さんがつ|Maret
+四|シ|よ, よん|empat|四時|よじ|jam empat
+五|ゴ|いつ(つ)|lima|五分|ごふん|lima menit
+六|ロク|むっ(つ)|enam|六百|ろっぴゃく|enam ratus
+七|シチ|なな|tujuh|七時|しちじ|jam tujuh
+八|ハチ|やっ(つ)|delapan|八百|はっぴゃく|delapan ratus
+九|キュウ, ク|ここの(つ)|sembilan|九時|くじ|jam sembilan
+十|ジュウ|とお|sepuluh|十分|じゅっぷん|sepuluh menit`],
+["Angka besar & uang",`百|ヒャク|–|seratus|三百|さんびゃく|tiga ratus
+千|セン|ち|seribu|三千|さんぜん|tiga ribu
+万|マン|–|sepuluh ribu|一万円|いちまんえん|10.000 yen
+円|エン|まる(い)|yen, lingkaran|百円|ひゃくえん|100 yen
+年|ネン|とし|tahun|今年|ことし|tahun ini
+時|ジ|とき|waktu, jam|時間|じかん|waktu
+分|フン, ブン|わ(かる)|menit, bagian|分かる|わかる|mengerti
+半|ハン|なか(ば)|setengah|三時半|さんじはん|jam setengah empat
+今|コン|いま|sekarang|今日|きょう|hari ini
+毎|マイ|–|setiap|毎日|まいにち|setiap hari`],
+["Hari dalam seminggu",`日|ニチ, ジツ|ひ, か|hari, matahari|日本|にほん|Jepang
+月|ゲツ, ガツ|つき|bulan|月曜日|げつようび|Senin
+火|カ|ひ|api|火曜日|かようび|Selasa
+水|スイ|みず|air|水曜日|すいようび|Rabu
+木|モク|き|pohon|木曜日|もくようび|Kamis
+金|キン|かね|emas, uang|お金|おかね|uang
+土|ド|つち|tanah|土曜日|どようび|Sabtu
+週|シュウ|–|minggu|来週|らいしゅう|minggu depan
+午|ゴ|–|tengah hari|午前|ごぜん|pagi (a.m.)
+曜|ヨウ|–|hari (dalam minggu)|日曜日|にちようび|Minggu`],
+["Orang",`人|ジン, ニン|ひと|orang|日本人|にほんじん|orang Jepang
+男|ダン|おとこ|laki-laki|男の子|おとこのこ|anak laki-laki
+女|ジョ|おんな|perempuan|女の人|おんなのひと|perempuan
+子|シ|こ|anak|子供|こども|anak
+父|フ|ちち|ayah|お父さん|おとうさん|ayah
+母|ボ|はは|ibu|お母さん|おかあさん|ibu
+友|ユウ|とも|teman|友達|ともだち|teman
+先|セン|さき|sebelum, dulu|先生|せんせい|guru
+生|セイ|い(きる), う(まれる)|hidup, lahir|学生|がくせい|pelajar
+名|メイ|な|nama|名前|なまえ|nama`],
+["Posisi & arah",`上|ジョウ|うえ|atas|上手|じょうず|pandai
+下|カ|した|bawah|下手|へた|tidak pandai
+中|チュウ|なか|tengah, dalam|中国|ちゅうごく|Tiongkok
+外|ガイ|そと|luar|外国|がいこく|luar negeri
+右|ウ|みぎ|kanan|右手|みぎて|tangan kanan
+左|サ|ひだり|kiri|左手|ひだりて|tangan kiri
+前|ゼン|まえ|depan, sebelum|名前|なまえ|nama
+後|ゴ|うし(ろ), あと|belakang, sesudah|午後|ごご|siang (p.m.)
+東|トウ|ひがし|timur|東京|とうきょう|Tokyo
+西|セイ|にし|barat|西口|にしぐち|pintu barat`],
+["Alam",`山|サン|やま|gunung|富士山|ふじさん|Gunung Fuji
+川|セン|かわ|sungai|川口|かわぐち|muara sungai
+天|テン|あま|langit|天気|てんき|cuaca
+気|キ|–|semangat, udara|元気|げんき|sehat
+雨|ウ|あめ|hujan|大雨|おおあめ|hujan lebat
+空|クウ|そら|langit, kosong|空港|くうこう|bandara
+花|カ|はな|bunga|花火|はなび|kembang api
+南|ナン|みなみ|selatan|南口|みなみぐち|pintu selatan
+北|ホク|きた|utara|北口|きたぐち|pintu utara
+白|ハク|しろ|putih|白い|しろい|putih`],
+["Sekolah & bahasa",`学|ガク|まな(ぶ)|belajar|大学|だいがく|universitas
+校|コウ|–|sekolah|学校|がっこう|sekolah
+語|ゴ|かた(る)|bahasa|日本語|にほんご|bahasa Jepang
+本|ホン|もと|buku, asal|本|ほん|buku
+国|コク|くに|negara|国|くに|negara
+電|デン|–|listrik|電話|でんわ|telepon
+車|シャ|くるま|mobil|電車|でんしゃ|kereta
+駅|エキ|–|stasiun|駅|えき|stasiun
+道|ドウ|みち|jalan|道|みち|jalan
+店|テン|みせ|toko|店|みせ|toko`],
+["Sifat",`大|ダイ|おお(きい)|besar|大きい|おおきい|besar
+小|ショウ|ちい(さい)|kecil|小さい|ちいさい|kecil
+高|コウ|たか(い)|tinggi, mahal|高い|たかい|mahal
+安|アン|やす(い)|murah, tenang|安い|やすい|murah
+長|チョウ|なが(い)|panjang|長い|ながい|panjang
+新|シン|あたら(しい)|baru|新聞|しんぶん|koran
+古|コ|ふる(い)|lama|古い|ふるい|lama
+多|タ|おお(い)|banyak|多い|おおい|banyak
+少|ショウ|すく(ない), すこ(し)|sedikit|少し|すこし|sedikit
+社|シャ|やしろ|perusahaan, kuil|会社|かいしゃ|perusahaan`],
+["Kata kerja 1",`行|コウ|い(く)|pergi|行く|いく|pergi
+来|ライ|く(る)|datang|来年|らいねん|tahun depan
+見|ケン|み(る)|melihat|見る|みる|melihat
+聞|ブン|き(く)|mendengar|聞く|きく|mendengar
+読|ドク|よ(む)|membaca|読む|よむ|membaca
+書|ショ|か(く)|menulis|書く|かく|menulis
+話|ワ|はな(す)|berbicara|電話|でんわ|telepon
+言|ゲン|い(う)|berkata|言う|いう|berkata
+食|ショク|た(べる)|makan|食べる|たべる|makan
+飲|イン|の(む)|minum|飲み物|のみもの|minuman`],
+["Kata kerja 2 & tubuh",`買|バイ|か(う)|membeli|買う|かう|membeli
+休|キュウ|やす(む)|istirahat|休み|やすみ|libur
+出|シュツ|で(る), だ(す)|keluar|出口|でぐち|pintu keluar
+入|ニュウ|はい(る), い(れる)|masuk|入口|いりぐち|pintu masuk
+会|カイ|あ(う)|bertemu|会う|あう|bertemu
+何|カ|なに, なん|apa|何時|なんじ|jam berapa
+手|シュ|て|tangan|上手|じょうず|pandai
+足|ソク|あし|kaki|足|あし|kaki
+目|モク|め|mata|目|め|mata
+口|コウ|くち|mulut|入口|いりぐち|pintu masuk`]
+];
+
+</script>
+<script>
+/* Tata bahasa JLPT N5. q: [kalimat dengan ＿, jawaban, pengecoh (dipisah koma), arti kalimat] */
+window.N5_GRAMMAR = [
+{id:"desu", title:"A は B です", pattern:"A は B です",
+ explain:"Pola dasar 'A adalah B'. は (dibaca 'wa') menandai topik, です membuat kalimat sopan. Di bahasa Jepang, kata kerja/predikat selalu di akhir kalimat.",
+ ex:[["わたしは がくせいです。","Saya adalah pelajar."],["リンジさんは インドネシアじんです。","Rinji adalah orang Indonesia."]],
+ q:[["わたし＿ がくせいです。","は","を,に,で","Saya pelajar."],["これは ほん＿。","です","ます,ない,か","Ini buku."],["たなかさん＿ せんせいです。","は","が,の,へ","Pak Tanaka adalah guru."],["あには いしゃ＿。","です","でした,ます,ません","Kakak laki-laki saya dokter."]]},
+{id:"janai", title:"Negatif: じゃありません", pattern:"A は B じゃありません",
+ explain:"Untuk 'A bukan B', ganti です dengan じゃありません (lisan) atau ではありません (lebih resmi).",
+ ex:[["わたしは せんせいじゃありません。","Saya bukan guru."],["これは わたしの かばんではありません。","Ini bukan tas saya."]],
+ q:[["わたしは にほんじん＿。","じゃありません","じゃないです,です,でした","Saya bukan orang Jepang."],["これは ペン＿ありません。","では","には,とは,で","Ini bukan pulpen."],["あれは がっこう＿。","じゃありません","ません,ないです,でした","Itu bukan sekolah."],["かれは がくせい＿。","ではありません","ではます,でません,じゃです","Dia bukan pelajar."]]},
+{id:"ka", title:"Pertanyaan: か", pattern:"…ですか",
+ explain:"Tambahkan か di akhir kalimat untuk membuat pertanyaan. Tidak perlu mengubah urutan kata. Jawab dengan はい (ya) atau いいえ (tidak).",
+ ex:[["あなたは がくせいですか。","Apakah kamu pelajar?"],["はい、そうです。","Ya, benar."]],
+ q:[["あなたは せんせいです＿。","か","よ,ね,の","Apakah kamu guru?"],["これは なんです＿。","か","は,を,が","Ini apa?"],["＿、わたしは がくせいです。","はい","いいえ,なに,だれ","Ya, saya pelajar."],["＿、そうじゃありません。","いいえ","はい,そう,これ","Tidak, bukan begitu."]]},
+{id:"no", title:"Kepemilikan: の", pattern:"A の B",
+ explain:"の menghubungkan dua kata benda: 'B milik A' atau 'B tentang A'. Urutannya terbalik dari bahasa Indonesia: わたしの ほん = buku saya.",
+ ex:[["これは わたしの ほんです。","Ini buku saya."],["にほんごの せんせい","guru bahasa Jepang"]],
+ q:[["わたし＿ かばんです。","の","は,を,に","Tas saya."],["にほんご＿ ほん","の","が,で,と","buku bahasa Jepang"],["あれは だれ＿ くるまですか。","の","が,は,を","Itu mobil siapa?"],["ともだち＿ いえ","の","へ,で,を","rumah teman"]]},
+{id:"kosoa", title:"これ・それ・あれ・どれ", pattern:"これ / それ / あれ / どれ",
+ explain:"これ = ini (dekat pembicara), それ = itu (dekat lawan bicara), あれ = itu (jauh dari keduanya), どれ = yang mana. Sebelum kata benda pakai この・その・あの・どの.",
+ ex:[["これは なんですか。","Ini apa?"],["その ほんは わたしのです。","Buku itu milik saya."]],
+ q:[["＿は わたしの ペンです。(dekat saya)","これ","それ,あれ,どれ","Ini pulpen saya."],["＿ かばんは だれのですか。(dekat kamu)","その","それ,あの,これ","Tas itu milik siapa?"],["＿が あなたの くるまですか。","どれ","どの,どこ,だれ","Yang mana mobilmu?"],["＿ やまは ふじさんです。(jauh)","あの","あれ,この,その","Gunung itu adalah Gunung Fuji."]]},
+{id:"mo", title:"Juga: も", pattern:"A も B です",
+ explain:"も berarti 'juga' dan menggantikan は atau が. わたしも = saya juga.",
+ ex:[["わたしも がくせいです。","Saya juga pelajar."],["これも おいしいです。","Ini juga enak."]],
+ q:[["あには いしゃです。ちち＿ いしゃです。","も","は,が,の","Kakak saya dokter. Ayah saya juga dokter."],["わたし＿ コーヒーが すきです。","も","を,に,で","Saya juga suka kopi."],["きのう＿ あめでした。","も","を,へ,と","Kemarin juga hujan."],["これ＿ やすいです。","も","を,の,へ","Ini juga murah."]]},
+{id:"masu-wo", title:"Kata kerja ます + を", pattern:"N を V ます",
+ explain:"Bentuk ます adalah bentuk sopan kata kerja: たべる → たべます. を (dibaca 'o') menandai objek yang dikenai pekerjaan.",
+ ex:[["ごはんを たべます。","Saya makan nasi."],["みずを のみます。","Saya minum air."]],
+ q:[["パン＿ たべます。","を","に,で,へ","Saya makan roti."],["ほんを よみ＿。","ます","です,ません,たい","Saya membaca buku."],["おちゃを ＿。","のみます","のみです,のむます,のみ","Saya minum teh."],["てがみ＿ かきます。","を","は,で,の","Saya menulis surat."]]},
+{id:"ni-he", title:"Tujuan: に / へ", pattern:"Tempat に/へ 行きます",
+ explain:"に atau へ (dibaca 'e') menandai tujuan gerak: pergi ke, datang ke, pulang ke. に juga menandai waktu tertentu: 7じに おきます.",
+ ex:[["がっこうへ いきます。","Saya pergi ke sekolah."],["7じに おきます。","Saya bangun jam 7."]],
+ q:[["えき＿ いきます。","に","を,で,の","Saya pergi ke stasiun."],["うち＿ かえります。","へ","を,が,の","Saya pulang ke rumah."],["6じ＿ おきます。","に","で,を,が","Saya bangun jam 6."],["にほん＿ きました。","へ","を,で,は","Saya datang ke Jepang."]]},
+{id:"de", title:"Tempat & alat: で", pattern:"Tempat で V ます",
+ explain:"で menandai tempat terjadinya kegiatan (belajar di perpustakaan) dan alat/cara (naik bus, dengan pulpen).",
+ ex:[["としょかんで べんきょうします。","Saya belajar di perpustakaan."],["バスで いきます。","Saya pergi naik bus."]],
+ q:[["レストラン＿ たべます。","で","に,へ,を","Saya makan di restoran."],["でんしゃ＿ かいしゃへ いきます。","で","に,を,が","Saya ke kantor naik kereta."],["ペン＿ かきます。","で","を,に,の","Saya menulis dengan pulpen."],["こうえん＿ あそびます。","で","へ,を,が","Saya bermain di taman."]]},
+{id:"masen", title:"ません・ました・ませんでした", pattern:"V ます / ません / ました / ませんでした",
+ explain:"Perubahan bentuk sopan: ます (sekarang/akan), ません (tidak), ました (sudah/lampau), ませんでした (tidak, lampau).",
+ ex:[["きのう えいがを みました。","Kemarin saya menonton film."],["けさ あさごはんを たべませんでした。","Tadi pagi saya tidak sarapan."]],
+ q:[["きのう テニスを ＿。","しました","します,しません,しましょう","Kemarin saya main tenis."],["わたしは おさけを のみ＿。","ません","ました,ましょう,たい","Saya tidak minum alkohol."],["けさ しんぶんを よみ＿。","ませんでした","ません,ます,ましょう","Tadi pagi saya tidak membaca koran."],["あした がっこうへ いき＿。","ます","ました,ませんでした,でした","Besok saya pergi ke sekolah."]]},
+{id:"i-adj", title:"Kata sifat い", pattern:"い-adj です / くないです / かったです",
+ explain:"Kata sifat berakhiran い: たかい. Negatif: ganti い dengan くない (たかくない). Lampau: かった (たかかった). Pengecualian: いい → よくない, よかった.",
+ ex:[["この ほんは おもしろいです。","Buku ini menarik."],["きのうは さむくなかったです。","Kemarin tidak dingin."]],
+ q:[["この りんごは ＿です。(tidak manis)","あまくない","あまいない,あまくなかった,あまじゃない","Apel ini tidak manis."],["きのうは ＿です。(panas, lampau)","あつかった","あついでした,あつくない,あつい","Kemarin panas."],["てんきが ＿です。(tidak baik)","よくない","いくない,いいない,よかった","Cuacanya tidak bagus."],["＿ くるまですね。","たかい","たかいな,たかくて,たかの","Mobil yang mahal ya."]]},
+{id:"na-adj", title:"Kata sifat な", pattern:"な-adj です / じゃありません / な + N",
+ explain:"Kata sifat な (しずか, きれい, げんき) memakai です langsung. Sebelum kata benda tambahkan な: しずかな へや. Negatif: じゃありません.",
+ ex:[["この まちは しずかです。","Kota ini tenang."],["きれいな はなですね。","Bunga yang indah ya."]],
+ q:[["＿ へやですね。","しずかな","しずか,しずかの,しずかい","Kamar yang tenang ya."],["わたしの まちは ＿。(tidak ramai)","にぎやかじゃありません","にぎやかくないです,にぎやかません,にぎやかない","Kotaku tidak ramai."],["かのじょは ＿ ひとです。","ゆうめいな","ゆうめい,ゆうめいい,ゆうめいの","Dia orang yang terkenal."],["わたしは げんき＿。","です","ます,な,い","Saya sehat."]]},
+{id:"aru-iru", title:"あります・います", pattern:"場所に N が あります/います",
+ explain:"あります untuk benda mati dan tumbuhan, います untuk manusia dan hewan. Tempat ditandai に, benda yang ada ditandai が.",
+ ex:[["へやに つくえが あります。","Di kamar ada meja."],["こうえんに こどもが います。","Di taman ada anak-anak."]],
+ q:[["にわに いぬが ＿。","います","あります,です,ます","Di halaman ada anjing."],["つくえの うえに ほんが ＿。","あります","います,です,いきます","Di atas meja ada buku."],["きょうしつ＿ がくせいが います。","に","で,を,へ","Di kelas ada murid."],["れいぞうこに たまご＿ あります。","が","を,で,へ","Di kulkas ada telur."]]},
+{id:"tai", title:"Ingin: たい", pattern:"V(ます) → たいです",
+ explain:"Untuk 'ingin melakukan', ganti ます dengan たいです: たべます → たべたいです. Negatif: たくないです.",
+ ex:[["にほんへ いきたいです。","Saya ingin pergi ke Jepang."],["きょうは なにも たべたくないです。","Hari ini saya tidak ingin makan apa pun."]],
+ q:[["すしを ＿です。","たべたい","たべますたい,たべるたい,たべたいます","Saya ingin makan sushi."],["にほんごを ＿です。","はなしたい","はなすたい,はなしたいます,はなしまたい","Saya ingin bisa berbahasa Jepang."],["きょうは ＿です。(tidak ingin pergi)","いきたくない","いかないたい,いきたいない,いきたくありますん","Hari ini saya tidak ingin pergi."],["なにが ＿ですか。","のみたい","のむたい,のみます,のんだい","Mau minum apa?"]]},
+{id:"mashou", title:"Ajakan: ましょう・ませんか", pattern:"V ましょう / V ませんか",
+ explain:"ましょう = 'mari/ayo kita...'. ませんか = ajakan sopan 'maukah...?'. Jawab ajakan dengan ええ、いいですね.",
+ ex:[["いっしょに たべましょう。","Ayo makan bersama."],["こんど えいがを みませんか。","Maukah kita menonton film lain kali?"]],
+ q:[["いっしょに かえり＿。","ましょう","ませんでした,たい,ました","Ayo pulang bersama."],["コーヒーを のみ＿か。","ません","ます,ました,ましょう","Maukah minum kopi?"],["ちょっと やすみ＿。","ましょう","ませんでした,たいです,ません","Mari istirahat sebentar."],["ええ、＿ですね。","いい","よく,よかった,いく","Ya, boleh juga."]]},
+{id:"te-kudasai", title:"Permintaan: てください", pattern:"V-て ください",
+ explain:"Bentuk て + ください = 'tolong lakukan'. Cara membuat bentuk て: たべます→たべて, みます→みて, かきます→かいて, よみます→よんで, いきます→いって, します→して.",
+ ex:[["ここに なまえを かいてください。","Tolong tulis nama di sini."],["ゆっくり はなしてください。","Tolong bicara pelan-pelan."]],
+ q:[["ちょっと ＿ください。(tunggu)","まって","まちて,まつて,まった","Tolong tunggu sebentar."],["この ほんを ＿ください。(baca)","よんで","よみて,よむて,よまて","Tolong baca buku ini."],["まどを ＿ください。(buka: あける)","あけて","あけって,あくて,あけで","Tolong buka jendelanya."],["もう いちど ＿ください。(katakan: いう)","いって","いいて,いうて,いんで","Tolong katakan sekali lagi."]]},
+{id:"te-iru", title:"Sedang: ている", pattern:"V-て います",
+ explain:"V-て います menyatakan sedang berlangsung (sedang makan) atau keadaan yang berlanjut (tinggal di, sudah menikah).",
+ ex:[["いま ごはんを たべています。","Sekarang saya sedang makan."],["ジャカルタに すんでいます。","Saya tinggal di Jakarta."]],
+ q:[["いま テレビを ＿います。","みて","みる,みた,みって","Sekarang sedang menonton TV."],["あには ぎんこうで ＿います。","はたらいて","はたらきて,はたらって,はたらくて","Kakak saya bekerja di bank."],["あめが ＿います。(turun: ふる)","ふって","ふりて,ふるて,ふんで","Hujan sedang turun."],["ちちは いま ＿います。(tidur: ねる)","ねて","ねって,ねりて,ねんで","Ayah sedang tidur."]]},
+{id:"temo-ii", title:"Boleh: てもいいです", pattern:"V-て も いいですか",
+ explain:"V-て も いいです = 'boleh melakukan'. Sebagai pertanyaan: てもいいですか = 'bolehkah saya...?'.",
+ ex:[["しゃしんを とっても いいですか。","Bolehkah saya mengambil foto?"],["ここで たべても いいです。","Boleh makan di sini."]],
+ q:[["ここに ＿も いいですか。(duduk: すわる)","すわって","すわりて,すわるて,すわった","Bolehkah saya duduk di sini?"],["まどを あけても ＿ですか。","いい","よい,いく,よく","Bolehkah saya membuka jendela?"],["この ペンを ＿も いいですか。(pakai: つかう)","つかって","つかいて,つかうて,つかんで","Bolehkah saya pakai pulpen ini?"],["トイレに いっても いい＿。","ですか","ますか,でした,ません","Bolehkah saya ke toilet?"]]},
+{id:"kara", title:"Alasan: から", pattern:"Alasan から、hasil",
+ explain:"から setelah kalimat berarti 'karena'. Alasan diletakkan di depan, akibat di belakang.",
+ ex:[["あついですから、まどを あけます。","Karena panas, saya membuka jendela."],["じかんが ありませんから、タクシーで いきます。","Karena tidak ada waktu, saya naik taksi."]],
+ q:[["さむいです＿、コートを きます。","から","まで,より,ので","Karena dingin, saya memakai mantel."],["あたまが いたいです＿、やすみます。","から","と,を,に","Karena sakit kepala, saya istirahat."],["＿、たべません。(karena tidak lapar)","おなかが すいていませんから","おなかが すいていますから,おなかから,すいていませんまで","Karena tidak lapar, saya tidak makan."],["あした テストが あります＿、べんきょうします。","から","まで,より,けど","Karena besok ada tes, saya belajar."]]},
+{id:"yori", title:"Perbandingan: より・のほうが", pattern:"A は B より adj です / A の ほうが adj です",
+ explain:"A は B より たかい = A lebih mahal daripada B. Untuk menjawab pilihan: A の ほうが たかいです = A yang lebih mahal.",
+ ex:[["でんしゃは バスより はやいです。","Kereta lebih cepat daripada bus."],["なつの ほうが すきです。","Saya lebih suka musim panas."]],
+ q:[["にほんは インドネシア＿ さむいです。","より","から,まで,ほう","Jepang lebih dingin daripada Indonesia."],["コーヒーと おちゃと どちらが すきですか。…おちゃの ＿が すきです。","ほう","より,もの,こと","Saya lebih suka teh."],["この かばんは あの かばん＿ やすいです。","より","ほど,のほう,まで","Tas ini lebih murah daripada tas itu."],["やまと うみと ＿が いいですか。","どちら","どれ,どこ,なに","Gunung dan laut, mana yang lebih baik?"]]}
+];
+
+</script>
 <script>
 /* ============================================================
    KURIKULUM — struktur yang akan diisi langkah 2–4.
@@ -184,6 +643,40 @@ function kanaLessons(script){
     return {id:p+"-"+row, kind:"kana", title:name+" "+items.map(i=>i.jp).join(" "), glyph:items[0].jp, items};
   });
 }
+/* Romaji Hepburn dari kana (untuk kosakata) */
+const ROMA={"きゃ":"kya","きゅ":"kyu","きょ":"kyo","しゃ":"sha","しゅ":"shu","しょ":"sho","ちゃ":"cha","ちゅ":"chu","ちょ":"cho","にゃ":"nya","にゅ":"nyu","にょ":"nyo","ひゃ":"hya","ひゅ":"hyu","ひょ":"hyo","みゃ":"mya","みゅ":"myu","みょ":"myo","りゃ":"rya","りゅ":"ryu","りょ":"ryo","ぎゃ":"gya","ぎゅ":"gyu","ぎょ":"gyo","じゃ":"ja","じゅ":"ju","じょ":"jo","びゃ":"bya","びゅ":"byu","びょ":"byo","ぴゃ":"pya","ぴゅ":"pyu","ぴょ":"pyo","ふぁ":"fa","てぃ":"ti","でぃ":"di","ちぇ":"che","しぇ":"she","じぇ":"je"};
+KANA_ROWS.forEach(([,list])=>list.split(",").forEach(x=>{const [h,r]=x.split(" "); ROMA[h]=r;})); ROMA["を"]="o"; ROMA["ゔ"]="vu";
+"ぁa,ぃi,ぅu,ぇe,ぉo".split(",").forEach(x=>ROMA[x[0]]=x.slice(1));
+function toRomaji(kana){
+  const h=kana.replace(/[\u30A1-\u30F6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+  let out="";
+  for(let i=0;i<h.length;i++){
+    const two=h.slice(i,i+2), c=h[i];
+    if(ROMA[two]&&two.length===2){out+=ROMA[two]; i++; continue;}
+    if(c==="っ"){const nx=ROMA[h.slice(i+1,i+3)]||ROMA[h[i+1]]||""; out+=nx.startsWith("ch")?"t":(nx[0]||""); continue;}
+    if(c==="ー"){out+=out.slice(-1); continue;}
+    if(c==="ん"){out+=/^[aiueoy]/.test(ROMA[h[i+1]]||"")?"n'":"n"; continue;}
+    out+=ROMA[c]!=null?ROMA[c]:c;
+  }
+  return out.replace(/n'/g,"n");
+}
+function vocabLessons(groups,p){
+  return groups.map(([title,txt],gi)=>{
+    const items=txt.trim().split("\n").map(line=>{const [jp,kana,arti]=line.split("|"); return {id:p+":"+jp,jp,kana,romaji:toRomaji(kana),arti};});
+    return {id:p+"-"+(gi+1),kind:"vocab",title,glyph:items[0].jp.slice(0,1),items};
+  });
+}
+function kanjiLessons(groups,p){
+  return groups.map(([title,txt],gi)=>{
+    const items=txt.trim().split("\n").map(line=>{const [jp,on,kun,arti,ex,exKana,exArti]=line.split("|");
+      return {id:p+":"+jp,jp,on,kun,arti,ex,exKana,exArti,romaji:toRomaji(exKana)};});
+    return {id:p+"-"+(gi+1),kind:"kanji",title:"Kanji: "+title,glyph:items[0].jp,items};
+  });
+}
+function grammarLessons(list,p){
+  return list.map(g=>({id:p+"-"+g.id,kind:"grammar",title:g.title,glyph:"文",pattern:g.pattern,explain:g.explain,ex:g.ex,
+    items:g.q.map((q,i)=>({id:p+":"+g.id+"-"+(i+1),jp:q[0],answer:q[1],distract:q[2].split(","),arti:q[3],romaji:""}))}));
+}
 const COURSE = [
   { id:"hira", title:"Hiragana", sub:"46 huruf dasar + dakuten", table:"h", lessons:kanaLessons("h") },
   { id:"kata", title:"Katakana", sub:"Untuk kata serapan asing", table:"k", lessons:kanaLessons("k") },
@@ -199,13 +692,13 @@ const COURSE = [
       {id:"v:hai",jp:"はい",romaji:"hai",arti:"ya"},
       {id:"v:iie",jp:"いいえ",romaji:"iie",arti:"tidak / bukan"}]}
   ]},
-  { id:"n5", title:"JLPT N5", sub:"Kosakata, kanji, tata bahasa", lessons:[
-    { id:"n5-vocab", kind:"vocab", title:"Kosakata N5 + SRS", glyph:"語", soon:true },
-    { id:"n5-kanji", kind:"kanji", title:"Kanji N5", glyph:"字", soon:true },
-    { id:"n5-gram",  kind:"grammar", title:"Tata bahasa N5", glyph:"文", soon:true }
-  ]},
+  { id:"n5v", title:"Kosakata N5", sub:"240 kata per tema", lessons:vocabLessons(window.N5_VOCAB||[],"n5v") },
+  { id:"n5k", title:"Kanji N5", sub:"100 kanji dasar", lessons:kanjiLessons(window.N5_KANJI||[],"n5k") },
+  { id:"n5g", title:"Tata bahasa N5", sub:"Pola kalimat dasar", lessons:grammarLessons(window.N5_GRAMMAR||[],"n5g") },
   { id:"n4", title:"JLPT N4", sub:"Lanjutan menuju target", lessons:[
-    { id:"n4-all", kind:"vocab", title:"Kurikulum N4", glyph:"四", soon:true }
+    { id:"n4-vocab", kind:"vocab", title:"Kosakata N4", glyph:"語", soon:true },
+    { id:"n4-kanji", kind:"kanji", title:"Kanji N4", glyph:"字", soon:true },
+    { id:"n4-gram", kind:"grammar", title:"Tata bahasa N4", glyph:"文", soon:true }
   ]},
   { id:"talk", title:"Percakapan", sub:"Bicara dengan partner AI", lessons:[
     { id:"talk-1", kind:"talk", title:"Perkenalan diri", glyph:"話", soon:true }
@@ -214,11 +707,19 @@ const COURSE = [
 const LESSONS = COURSE.flatMap(u=>u.lessons.map(l=>({...l,unit:u.id})));
 const ITEMS = {}; LESSONS.forEach(l=>(l.items||[]).forEach(it=>ITEMS[it.id]={...it,kind:l.kind,lesson:l.id}));
 
+/* RENCANA BELAJAR: urutan yang disarankan, selang-seling kosakata, tata bahasa, dan kanji */
+const PACE=6; // pelajaran per minggu (±30 menit/hari)
+const PLAN=(()=>{const u=id=>LESSONS.filter(l=>l.unit===id&&!l.soon);
+  const out=[...u("hira"),...u("salam"),...u("kata")];
+  const v=u("n5v"),g=u("n5g"),k=u("n5k");
+  while(v.length||g.length||k.length){ out.push(...v.splice(0,2)); if(g.length) out.push(g.shift()); if(k.length) out.push(k.shift()); }
+  return out;})();
+
 /* ============================================================
    DATA — disimpan di perangkat dan (bila tersedia) di akun.
    ============================================================ */
 const LS_KEY="nihongo-harian-v1";
-const blank=()=>({v:1,goalMin:30,days:{},lessons:{},items:{},updatedAt:0});
+const blank=()=>({v:1,goalMin:30,days:{},lessons:{},items:{},srs:{},planStart:null,updatedAt:0});
 let S=blank();
 try{const raw=localStorage.getItem(LS_KEY); if(raw) S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
 
@@ -230,6 +731,10 @@ const dayRec=k=>S.days[k]||(S.days[k]={sec:0,right:0,wrong:0,lessons:[]});
 function merge(a,b){ // gabung dua salinan: ambil nilai terbesar, tidak ada yang hilang
   const m=blank(); m.goalMin=(a.updatedAt>=b.updatedAt?a:b).goalMin||30;
   m.updatedAt=Math.max(a.updatedAt||0,b.updatedAt||0);
+  m.planStart=[a.planStart,b.planStart].filter(Boolean).sort()[0]||null;
+  for(const k of new Set([...Object.keys(a.srs||{}),...Object.keys(b.srs||{})])){
+    const x=a.srs?.[k],y=b.srs?.[k]; m.srs[k]=!x?y:!y?x:((x.t||0)>=(y.t||0)?x:y);
+  }
   for(const k of new Set([...Object.keys(a.days||{}),...Object.keys(b.days||{})])){
     const x=a.days?.[k]||{},y=b.days?.[k]||{};
     m.days[k]={sec:Math.max(x.sec||0,y.sec||0),right:Math.max(x.right||0,y.right||0),wrong:Math.max(x.wrong||0,y.wrong||0),sRight:Math.max(x.sRight||0,y.sRight||0),sWrong:Math.max(x.sWrong||0,y.sWrong||0),lessons:[...new Set([...(x.lessons||[]),...(y.lessons||[])])]};
@@ -325,10 +830,29 @@ function weakItems(){
     .sort((a,b)=>b.score-a.score).map(x=>x.id);
 }
 
+/* SRS: kotak Leitner. Benar → naik kotak (jeda makin panjang), salah → kembali ke kotak 1. */
+const SRS_GAP=[0,1,2,4,7,15,30,60]; // hari
+function addDays(k,n){const d=new Date(k+"T00:00"); d.setDate(d.getDate()+n); return keyOf(d);}
+function srsAdd(ids){ids.forEach(id=>{ if(!S.srs[id]) S.srs[id]={box:1,due:addDays(todayKey(),1),t:Date.now()}; });}
+function srsDue(){const t=todayKey(); return Object.entries(S.srs).filter(([id,c])=>ITEMS[id]&&c.due<=t).sort((a,b)=>a[1].box-b[1].box||(a[1].due<b[1].due?-1:1)).map(([id])=>id);}
+function srsAnswer(id,ok){
+  const c=S.srs[id]||(S.srs[id]={box:1,due:todayKey(),t:0});
+  c.box=ok?Math.min(7,c.box+1):1; c.due=addDays(todayKey(),ok?SRS_GAP[c.box]:1); c.t=Date.now();
+}
+function srsNextDay(){const ds=Object.values(S.srs).map(c=>c.due).filter(d=>d>todayKey()).sort(); return ds[0]||null;}
+function planInfo(){
+  const start=S.planStart||todayKey();
+  const week=Math.floor((new Date(todayKey()+"T00:00")-new Date(start+"T00:00"))/864e5/7)+1;
+  const done=PLAN.filter(l=>S.lessons[l.id]).length, target=Math.min(PLAN.length,week*PACE), due=Math.min(PLAN.length,(week-1)*PACE);
+  const left=PLAN.length-done, weeksLeft=Math.ceil(left/PACE);
+  const end=new Date(); end.setDate(end.getDate()+weeksLeft*7);
+  return {week,done,target,total:PLAN.length,diff:done<due?done-due:Math.max(0,done-target),thisWeek:Math.max(0,target-done),end,todo:PLAN.filter(l=>!S.lessons[l.id]).slice(0,Math.max(0,target-done)||Math.min(3,left))};
+}
+
 /* ============================================================
    TAMPILAN
    ============================================================ */
-let tab="home";
+let tab="home"; const openUnits=new Set();
 const TABS=[["home","家","Beranda"],["learn","学","Pelajaran"],["review","復","Ulangi"],["stats","績","Progres"]];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const WD=[["Min","日"],["Sen","月"],["Sel","火"],["Rab","水"],["Kam","木"],["Jum","金"],["Sab","土"]];
@@ -340,7 +864,7 @@ function render(){
   updateClock();
 }
 
-function nextLesson(){ return LESSONS.find(l=>!l.soon && !S.lessons[l.id]) || LESSONS.find(l=>!l.soon); }
+function nextLesson(){ return PLAN.find(l=>!S.lessons[l.id]) || PLAN[0]; }
 
 function viewHome(){
   const sec=S.days[todayKey()]?.sec||0, st=streak(), weak=weakItems().length, nl=nextLesson();
@@ -361,24 +885,43 @@ function viewHome(){
   </section>
   <section class="card" style="display:grid;gap:12px"><div class="row between"><h2>Minggu ini</h2><span class="muted" style="font-size:13px">Cap 済 = target tercapai</span></div><div class="week">${week}</div></section>
   <button class="action" data-lesson="${nl.id}"><span class="glyph">${nl.glyph}</span><span class="txt"><span class="eyebrow">${S.lessons[nl.id]?"Ulangi pelajaran":"Lanjutkan"}</span><b>${esc(nl.title)}</b><span class="muted" style="font-size:13px">${nl.items.length} materi · sekitar 5 menit</span></span><span class="go">›</span></button>
+  ${srsCard()}
   <button class="action" data-act="review"><span class="glyph" style="background:var(--bad-soft);color:var(--bad)">復</span><span class="txt"><span class="eyebrow">Ulangi</span><b>${weak?weak+" materi perlu dilatih lagi":"Belum ada materi yang sering salah"}</b><span class="muted" style="font-size:13px">Materi yang paling sering salah muncul lebih dulu</span></span><span class="go">›</span></button>`;
 }
 
+function srsCard(){
+  const due=srsDue().length, total=Object.keys(S.srs).length, nx=srsNextDay();
+  const sub=due?`Sekitar ${Math.max(1,Math.round(Math.min(due,20)*0.25))} menit · kartu muncul lagi sesuai daya ingatmu`:total?`Semua beres. Kartu berikutnya ${nx?new Date(nx+"T00:00").toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"short"}):"nanti"}.`:"Kartu masuk ke sini setelah kamu menyelesaikan pelajaran.";
+  return `<button class="action" data-act="srs" ${due?"":"disabled"} style="${due?"":"cursor:default"}"><span class="glyph" style="background:var(--good-soft);color:var(--good)">札</span><span class="txt"><span class="eyebrow">Kartu SRS hari ini</span><b>${due?due+" kartu menunggu diulang":"Tidak ada kartu jatuh tempo"}</b><span class="muted" style="font-size:13px">${sub}</span></span>${due?'<span class="go">›</span>':""}</button>`;
+}
+function planCard(){
+  const p=planInfo(); const state=p.diff>=0?(p.diff>0?`<span class="chip good">Lebih cepat ${p.diff} pelajaran</span>`:p.thisWeek?`<span class="chip">${p.thisWeek} pelajaran lagi minggu ini</span>`:`<span class="chip good">Target minggu ini beres</span>`):`<span class="chip" style="background:var(--bad-soft);color:var(--bad)">Kurang ${-p.diff} pelajaran</span>`;
+  return `<section class="card" style="display:grid;gap:10px"><div class="row between" style="flex-wrap:wrap"><h2>Rencana minggu ke-${p.week}</h2>${state}</div>
+  <div class="bar" style="flex:none"><i style="width:${Math.round(p.done/p.total*100)}%"></i></div>
+  <p class="muted" style="margin:0;font-size:14px">${p.done} dari ${p.total} pelajaran sampai N5 selesai. Dengan ${PACE} pelajaran per minggu, N5 selesai sekitar <b>${p.end.toLocaleDateString("id-ID",{month:"long",year:"numeric"})}</b>, lalu lanjut N4.</p>
+  ${p.todo.length?`<div style="display:grid;gap:6px"><span class="eyebrow">${p.diff<0?"Kejar ketinggalan":p.thisWeek?"Target minggu ini":"Berikutnya"}</span>${p.todo.slice(0,6).map(l=>`<button class="plan-item" data-lesson="${l.id}"><span class="jp">${l.glyph}</span>${esc(l.title)}</button>`).join("")}</div>`:""}</section>`;
+}
+
 function viewLearn(){
-  return `<header><div class="eyebrow">Semua pelajaran bisa diulang kapan saja</div><h1>Pelajaran</h1></header>`+
+  const nl=nextLesson();
+  return `<header><div class="eyebrow">Semua pelajaran bisa diulang kapan saja</div><h1>Pelajaran</h1></header>${planCard()}`+
   COURSE.map(u=>{const avail=u.lessons.filter(l=>!l.soon), done=avail.filter(l=>S.lessons[l.id]).length;
-    return `<section class="unit"><div class="unit-head"><h2>${esc(u.title)}</h2><span class="muted" style="font-size:13px">${avail.length?`${done}/${avail.length} selesai`:esc(u.sub)}</span></div>`+
+    const open=openUnits.has(u.id)||(!openUnits.size&&u.id===nl.unit);
+    return `<details class="unit" data-unit="${u.id}" ${open?"open":""}><summary class="unit-head"><h2>${esc(u.title)}</h2><span class="muted" style="font-size:13px">${avail.length?`${done}/${avail.length} selesai`:esc(u.sub)}</span></summary><div class="unit-body">`+
     (u.table?`<button class="btn" data-act="table" data-script="${u.table}" style="justify-self:start">Lihat tabel ${esc(u.title.toLowerCase())}</button>`:"")+
     u.lessons.map(l=>{const p=S.lessons[l.id];
       if(l.soon) return `<div class="lesson locked"><span class="ico jp">${l.glyph}</span><span class="txt"><b>${esc(l.title)}</b><div class="meta">Segera hadir</div></span></div>`;
       return `<div class="lesson-row"><button class="lesson ${p?"done":""}" data-lesson="${l.id}"><span class="ico jp">${l.glyph}</span><span class="txt"><b class="jp-mix">${esc(l.title)}</b><div class="meta">${p?`Selesai ${p.times}× · nilai terbaik ${p.best}%`:`${l.items.length} materi · belum dimulai`}</div></span><span class="muted">${p?"Ulangi ›":"Mulai ›"}</span></button>`+
-        (p?`<button class="lesson-mic" data-act="speak-lesson" data-id="${l.id}" aria-label="Latihan bicara: ${esc(l.title)}">${MIC_SVG}</button>`:"")+`</div>`;}).join("")+`</section>`;}).join("");
+        (p&&canSpeak(l)?`<button class="lesson-mic" data-act="speak-lesson" data-id="${l.id}" aria-label="Latihan bicara: ${esc(l.title)}">${MIC_SVG}</button>`:"")+`</div>`;}).join("")+`</div></details>`;}).join("");
 }
 
 function viewReview(){
   const weak=weakItems(); const seen=Object.keys(S.items).filter(id=>ITEMS[id]);
   const list=weak.slice(0,12).map(id=>{const it=ITEMS[id],s=S.items[id];return `<div class="hist-row"><span><span class="jp" style="font-size:20px;font-weight:700">${it.jp}</span> <span class="muted">${esc(it.arti||it.romaji)}</span></span><span class="num" style="color:var(--bad)">${s.wrong}× salah</span><span class="num muted">${s.right}× benar</span></div>`;}).join("");
+  const boxes=[1,2,3,4,5,6,7].map(b=>Object.values(S.srs).filter(c=>c.box===b).length);
   return `<header><div class="eyebrow">Latihan ulang</div><h1>Ulangi</h1></header>
+  ${srsCard()}
+  ${Object.keys(S.srs).length?`<section class="card" style="display:grid;gap:8px"><h2>Kekuatan ingatan</h2><div class="boxes">${boxes.map((n,i)=>`<div><b class="num">${n}</b><span>${["1h","2h","4h","1mg","2mg","1bln","2bln"][i]}</span></div>`).join("")}</div><p class="muted" style="margin:0;font-size:13px">Jumlah kartu menurut jeda ulangan berikutnya. Semakin ke kanan, semakin kuat ingatanmu.</p></section>`:""}
   <section class="card" style="display:grid;gap:12px">
     <p style="margin:0">${weak.length?`Ada <b>${weak.length}</b> materi yang masih sering salah. Satu sesi berisi sampai 10 soal, dimulai dari yang paling sering salah. Materi hilang dari daftar setelah benar 3 kali berturut-turut.`:seen.length?"Semua materi yang sudah dipelajari sedang aman. Kamu tetap bisa mengulang semua materi secara acak.":"Belum ada data. Selesaikan satu pelajaran dulu, nanti materi yang salah muncul di sini."}</p>
     <button class="btn primary block" data-act="review" ${weak.length?"":"hidden"}>Mulai latihan materi lemah</button>
@@ -472,8 +1015,8 @@ function listen(st){
   let got=false;
   rec.onresult=ev=>{
     got=true; lastMic="ok"; const alts=[...ev.results[0]].map(a=>a.transcript);
-    const target=clean(st.item.jp), rom=st.item.romaji.toLowerCase();
-    const ok=alts.some(a=>{const c=clean(a); return c.includes(target)||c===rom||c===rom+rom;});
+    const target=clean(st.item.kana||st.item.jp), written=clean(st.item.jp), rom=st.item.romaji.toLowerCase();
+    const ok=alts.some(a=>{const c=clean(a); return c.includes(target)||c.includes(written)||c===rom||c===rom+rom;});
     st.heard=alts[0]||""; st.ok=ok; st.tries=(st.tries||0)+1;
     if(st.tries===1||ok) recordSpeech(st.item,ok);
   };
@@ -494,21 +1037,31 @@ function recordSpeech(item,ok){
 }
 
 function makeQuiz(item){
+  if(item.kind==="grammar") return {type:"quiz",item,answer:item.answer,options:shuffle([item.answer,...item.distract]),jpOpts:true,mode:"gram"};
   const pool=Object.values(ITEMS).filter(x=>x.kind===item.kind&&x.id!==item.id&&(item.kind!=="kana"||x.id[0]===item.id[0]));
-  const reverse=item.kind==="vocab"&&Math.random()<.5;
-  const label=x=>item.kind==="kana"?x.romaji:reverse?x.jp:x.arti;
+  let mode;
+  if(item.kind==="kana") mode="read";
+  else if(item.kind==="kanji") mode=Math.random()<.5?"meaning":"exread";
+  else mode=Math.random()<.5?"reverse":"meaning";
+  const label=x=>mode==="read"?x.romaji:mode==="reverse"?x.jp:mode==="exread"?x.exKana:x.arti;
   // pengecoh diutamakan dari pelajaran yang sama supaya kuis tetap menantang
   const near=shuffle(pool.filter(x=>x.lesson===item.lesson)), far=shuffle(pool.filter(x=>x.lesson!==item.lesson));
-  const distract=[...near,...far].map(label).filter((v,i,a)=>v!==label(item)&&a.indexOf(v)===i).slice(0,3);
-  return {type:"quiz",item,reverse,answer:label(item),options:shuffle([label(item),...distract]),jpOpts:reverse};
+  const distract=[...near,...far].map(label).filter((v,i,a)=>v&&v!==label(item)&&a.indexOf(v)===i).slice(0,3);
+  return {type:"quiz",item,mode,reverse:mode==="reverse",answer:label(item),options:shuffle([label(item),...distract]),jpOpts:mode==="reverse"||mode==="exread"};
 }
-function speakSteps(items){ return SR&&!micBlocked ? shuffle(items).map(x=>({type:"speak",item:ITEMS[x.id]})) : []; }
+const canSpeak=l=>l.kind==="kana"||l.kind==="vocab";
+function speakSteps(items){ return SR&&!micBlocked&&items.length&&canSpeak(ITEMS[items[0].id]) ? shuffle(items).map(x=>({type:"speak",item:ITEMS[x.id]})) : []; }
 function newQ(o){return Object.assign({i:0,right:0,wrong:0,sRight:0,sWrong:0,answered:null},o);}
 function startLesson(id){
   const l=LESSONS.find(x=>x.id===id); if(!l||l.soon) return;
-  const learn=l.items.map(item=>({type:"learn",item:ITEMS[item.id]}));
+  const learn=l.kind==="grammar"?[{type:"explain",item:{jp:l.pattern}}]:l.items.map(item=>({type:"learn",item:ITEMS[item.id]}));
   const quiz=shuffle(l.items).map(x=>makeQuiz(ITEMS[x.id]));
   Q=newQ({mode:"lesson",lesson:l,steps:[...learn,...quiz,...speakSteps(l.items)]});
+  openLayer();
+}
+function startSRS(){
+  const ids=srsDue().slice(0,20); if(!ids.length){toast("Tidak ada kartu yang jatuh tempo hari ini."); return;}
+  Q=newQ({mode:"srs",lesson:{title:"Kartu SRS hari ini"},steps:shuffle(ids).map(id=>makeQuiz(ITEMS[id]))});
   openLayer();
 }
 function startSpeak(id){
@@ -561,6 +1114,8 @@ function recordAnswer(item,ok){
   const s=S.items[item.id]||(S.items[item.id]={right:0,wrong:0,streak:0,last:0});
   if(ok){s.right++; s.streak=(s.streak||0)+1;} else {s.wrong++; s.streak=0;}
   s.last=Date.now(); const d=dayRec(todayKey()); ok?d.right++:d.wrong++;
+  if(Q.mode==="srs") srsAnswer(item.id,ok);
+  else if(!ok&&S.srs[item.id]) srsAnswer(item.id,false);
   ok?Q.right++:Q.wrong++; save();
 }
 function finish(){
@@ -570,6 +1125,8 @@ function finish(){
     const p=S.lessons[Q.lesson.id]||(S.lessons[Q.lesson.id]={times:0,best:0,last:0});
     p.times++; p.best=Math.max(p.best,pct); p.last=Date.now();
     const d=dayRec(todayKey()); if(!d.lessons.includes(Q.lesson.id)) d.lessons.push(Q.lesson.id);
+    if(!S.planStart) S.planStart=todayKey();
+    srsAdd(Q.lesson.items.map(x=>x.id));
   }
   save(true); Q.done=pct; renderLayer();
 }
@@ -610,28 +1167,47 @@ function renderLayer(){
     const msg=Q.done>=90?"Hebat! すごい!":Q.done>=60?"Bagus, terus latihan.":"Tidak apa-apa, ulangi sekali lagi ya.";
     const parts=[]; if(Q.right+Q.wrong) parts.push(`Kuis: ${Q.right} benar · ${Q.wrong} salah`); if(Q.sRight+Q.sWrong) parts.push(`Bicara: ${Q.sRight} dari ${Q.sRight+Q.sWrong} langsung tepat`);
     body=`<div class="result"><div class="hanko">${Q.done>=60?"済":"復"}</div><div class="score num">${Q.done}%</div><h2>${msg}</h2>${parts.map(p=>`<p class="muted" style="margin:0">${p}</p>`).join("")}${Q.wrong?`<p class="muted" style="margin:0">Jawaban kuis yang salah otomatis masuk menu Ulangi.</p>`:""}</div>`;
-    const again=Q.mode==="lesson"?`<button class="btn block" data-act="again">Ulangi pelajaran ini</button>`:Q.mode==="speak"?`<button class="btn block" data-act="again-speak">Latihan bicara lagi</button>`:`<button class="btn block" data-act="again-review">Latihan lagi</button>`;
+    const again=Q.mode==="lesson"?`<button class="btn block" data-act="again">Ulangi pelajaran ini</button>`:Q.mode==="srs"?(srsDue().length?`<button class="btn block" data-act="srs">Lanjut kartu berikutnya (${srsDue().length})</button>`:""):Q.mode==="speak"?`<button class="btn block" data-act="again-speak">Latihan bicara lagi</button>`:`<button class="btn block" data-act="again-review">Latihan lagi</button>`;
     foot=`<div style="display:grid;gap:10px">${again}<button class="btn primary block" data-act="close">Selesai</button></div>`;
   } else {
     const st=Q.steps[Q.i], it=st.item, isWord=it.jp.length>1, nextType=Q.steps[Q.i+1]?.type;
     const nextLabel=Q.i===n-1?"Lihat hasil":nextType!==st.type?(nextType==="quiz"?"Mulai kuis":"Mulai latihan bicara"):"Berikutnya";
-    if(st.type==="learn"){
-      body=`<div class="eyebrow">Kenali · ${Q.i+1} dari ${Q.lesson.items.length}</div>
-      <div class="flash"><div class="glyph ${isWord?"word":""}">${it.jp}</div><div class="romaji">${esc(it.romaji)}</div>${it.arti?`<div style="font-size:18px;font-weight:600">${esc(it.arti)}</div>`:""}${it.tip?`<div class="tip">${esc(it.tip)}</div>`:""}
-      <button class="speak" data-say="${esc(it.jp)}">Dengar ▸</button></div>`;
+    if(st.type==="explain"){
+      const l=Q.lesson;
+      body=`<div class="eyebrow">Tata bahasa · pola kalimat</div>
+      <div class="flash" style="justify-items:stretch;text-align:left"><div class="pattern jp">${esc(l.pattern)}</div><p style="margin:0">${esc(l.explain)}</p></div>
+      <div style="display:grid;gap:8px"><span class="eyebrow">Contoh</span>${l.ex.map(([jp,arti])=>`<div class="example"><div><div class="jp" style="font-size:18px;font-weight:700">${esc(jp)}</div><div class="muted">${esc(arti)}</div></div><button class="speak" data-say="${esc(jp)}">▸</button></div>`).join("")}</div>`;
+      foot=`<button class="btn primary block" data-act="next">Mulai latihan</button>`;
+    } else if(st.type==="learn"){
+      const reading=it.kana&&it.kana!==it.jp?`<div class="reading jp">${esc(it.kana)}</div>`:"";
+      if(it.kind==="kanji"){
+        body=`<div class="eyebrow">Kenali kanji · ${Q.i+1} dari ${Q.lesson.items.length}</div>
+        <div class="flash"><div class="glyph">${it.jp}</div><div style="font-size:20px;font-weight:700">${esc(it.arti)}</div>
+        <div class="readings"><span><small>On</small><b class="jp">${esc(it.on)}</b></span><span><small>Kun</small><b class="jp">${esc(it.kun)}</b></span></div>
+        <div class="example" style="width:100%"><div><div class="jp" style="font-size:22px;font-weight:700">${esc(it.ex)} <span class="muted" style="font-size:15px;font-weight:500">${esc(it.exKana)}</span></div><div class="muted">${esc(it.exArti)}</div></div><button class="speak" data-say="${esc(it.ex)}">▸</button></div></div>`;
+      } else {
+        body=`<div class="eyebrow">Kenali · ${Q.i+1} dari ${Q.lesson.items.length}</div>
+        <div class="flash">${reading}<div class="glyph ${isWord?"word":""}">${it.jp}</div><div class="romaji">${esc(it.romaji)}</div>${it.arti?`<div style="font-size:18px;font-weight:600">${esc(it.arti)}</div>`:""}${it.tip?`<div class="tip">${esc(it.tip)}</div>`:""}
+        <button class="speak" data-say="${esc(it.jp)}">Dengar ▸</button></div>`;
+      }
       foot=`<button class="btn primary block" data-act="next">${nextLabel}</button>`;
     } else if(st.type==="speak"){
       body=speakBody(st);
       const tried=st.ok!=null||micBlocked;
       foot=micBlocked?`<button class="btn primary block" data-act="skip-speak">Lewati latihan bicara</button>`:`<button class="btn ${tried?"primary":""} block" data-act="next">${tried?nextLabel:"Lewati"}</button>`;
     } else {
-      const a=Q.answered;
-      const prompt=st.reverse?`<div style="font-size:24px;font-weight:700">${esc(it.arti)}</div>`:`<div class="glyph ${isWord?"word":""}">${it.jp}</div>`;
-      const ask=it.kind==="kana"?"Bagaimana cara membaca huruf ini?":st.reverse?"Pilih bahasa Jepangnya":"Apa artinya?";
-      body=`<div class="eyebrow">Kuis · ${ask}</div><div class="flash">${prompt}${st.reverse?"":`<button class="speak" data-say="${esc(it.jp)}">Dengar ▸</button>`}</div>
+      const a=Q.answered, m=st.mode;
+      const reading=it.kana&&it.kana!==it.jp&&m!=="reverse"?`<div class="reading jp">${esc(it.kana)}</div>`:"";
+      let prompt, ask, sayText=it.jp;
+      if(m==="gram"){ prompt=`<div class="jp" style="font-size:22px;font-weight:700;line-height:1.6">${esc(it.jp).replace("＿","<span class=\"blank\">＿＿</span>")}</div><div class="muted">${esc(it.arti)}</div>`; ask="Lengkapi kalimatnya"; sayText=null; }
+      else if(m==="reverse"){ prompt=`<div style="font-size:24px;font-weight:700">${esc(it.arti)}</div>`; ask="Pilih bahasa Jepangnya"; sayText=null; }
+      else if(m==="exread"){ prompt=`<div class="glyph word">${esc(it.ex)}</div><div class="muted">${esc(it.exArti)}</div>`; ask="Bagaimana cara membacanya?"; sayText=null; }
+      else { prompt=`${reading}<div class="glyph ${isWord?"word":""}">${it.jp}</div>`; ask=it.kind==="kana"?"Bagaimana cara membaca huruf ini?":"Apa artinya?"; if(it.kind==="kanji") sayText=null; }
+      const fix=m==="gram"?`${esc(it.jp.replace("＿",it.answer).replace(/[(（][^)）]*[)）]/g,"").trim())}`:it.kind==="kanji"?`${it.jp} = ${esc(it.arti)} · ${esc(it.ex)} (${esc(it.exKana)})`:`${it.jp}${it.kana&&it.kana!==it.jp?" ("+esc(it.kana)+")":""} = ${esc(it.romaji)}${it.arti?" · "+esc(it.arti):""}`;
+      body=`<div class="eyebrow">${Q.mode==="srs"?"Kartu SRS":"Kuis"} · ${ask}</div><div class="flash">${prompt}${sayText?`<button class="speak" data-say="${esc(sayText)}">Dengar ▸</button>`:""}</div>
       <div class="opts">${st.options.map(o=>{let c=""; if(a){ if(o===st.answer)c="right"; else if(o===a)c="wrong"; }
-        return `<button class="opt ${st.jpOpts?"jp":""} ${c}" data-opt="${esc(o)}" ${a?"disabled":""}>${esc(o)}</button>`;}).join("")}</div>
-      ${a?`<div class="feedback ${a===st.answer?"right":"wrong"}">${a===st.answer?"Benar!":`Belum tepat. ${it.jp} = ${esc(it.romaji)}${it.arti?" ("+esc(it.arti)+")":""}`}</div>`:""}`;
+        return `<button class="opt ${st.jpOpts?"jp":""} ${o.length>10?"long":""} ${c}" data-opt="${esc(o)}" ${a?"disabled":""}>${esc(o)}</button>`;}).join("")}</div>
+      ${a?`<div class="feedback ${a===st.answer?"right":"wrong"}">${a===st.answer?"Benar! "+(m==="gram"?fix:""):"Belum tepat. "+fix}</div>`:""}`;
       foot=`<button class="btn primary block" data-act="next" ${a?"":"disabled"}>${nextLabel}</button>`;
     }
   }
@@ -651,11 +1227,12 @@ document.addEventListener("click",e=>{
   if(b.dataset.say){speak(b.dataset.say); return;}
   if(b.dataset.opt!=null && Q && !Q.answered){
     const st=Q.steps[Q.i]; Q.answered=b.dataset.opt; const ok=Q.answered===st.answer; recordAnswer(st.item,ok);
-    if(!st.reverse) speak(st.item.jp); renderLayer(); return;
+    if(st.mode==="meaning"&&st.item.kind!=="kanji"||st.mode==="read") speak(st.item.jp); else if(st.mode==="gram") speak(st.item.jp.replace("＿",st.item.answer)); else if(st.mode==="exread") speak(st.item.ex); renderLayer(); return;
   }
   const act=b.dataset.act;
   if(act==="free"){freeSession=!freeSession; lastTick=Date.now(); render(); toast(freeSession?"Sesi bebas berjalan. Waktu belajar dari buku atau video ikut tercatat.":"Sesi bebas dijeda.");}
   else if(act==="review"){startReview(false);}
+  else if(act==="srs"){ if(Q){closeLayer();} startSRS(); }
   else if(act==="review-all"){startReview(true);}
   else if(act==="next"&&Q){try{rec&&rec.abort();}catch(e){} Q.answered=null; Q.i++; if(Q.i>=Q.steps.length) finish(); else renderLayer();}
   else if(act==="mic-test"){micTest();}
@@ -669,6 +1246,7 @@ document.addEventListener("click",e=>{
   else if(act==="again"&&Q){const id=Q.lesson.id; Q=null; startLesson(id);}
   else if(act==="again-review"){Q=null; startReview(weakItems().length===0);}
 });
+document.addEventListener("toggle",e=>{const u=e.target.dataset?.unit; if(!u) return; e.target.open?openUnits.add(u):openUnits.delete(u);},true);
 document.addEventListener("change",e=>{ if(e.target.id==="goalSel"){S.goalMin=+e.target.value; save(true); render();} });
 document.addEventListener("visibilitychange",()=>{lastTick=Date.now();});
 render();
