@@ -93,7 +93,7 @@ select{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--l
 
 /* Tab bar */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
 .tab{border:0;background:none;padding:8px 4px 10px;display:grid;justify-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--muted)}
 .tab .k{font-family:var(--f-jp);font-size:19px;font-weight:700;line-height:1.2}
 .tab[aria-current="page"]{color:var(--ai)}
@@ -161,6 +161,26 @@ details[open]>summary.unit-head h2::before{transform:rotate(90deg)}
 .boxes b{font-size:17px}
 .boxes span{font-size:10.5px;color:var(--muted)}
 .action:disabled{opacity:1}
+.linkbtn{border:0;background:none;padding:0;color:var(--ai);text-decoration:underline;font:inherit}
+.scenes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scene{display:grid;gap:2px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:14px}
+.scene .jp{font-family:var(--f-jp);font-weight:700;color:var(--ai);font-size:15px}
+.scene .muted{font-size:12.5px}
+.chat{display:grid;gap:10px}
+.bub{max-width:88%;border-radius:16px;padding:10px 14px;display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}
+.bub.ai{background:var(--surface);border:1px solid var(--line);justify-self:start;border-bottom-left-radius:4px}
+.bub.me{background:var(--ai);color:var(--bg);justify-self:end;border-bottom-right-radius:4px;font-family:var(--f-jp);font-size:17px}
+.bub.typing{color:var(--muted);font-size:22px;letter-spacing:.2em}
+.bub summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.bub .speak{padding:5px 12px;font-size:13px}
+.corr{background:var(--bad-soft);color:var(--fg);border-radius:12px;padding:10px 12px;display:grid;gap:4px;font-size:14px}
+.corr s{color:var(--bad)}
+.praise{background:var(--good-soft);color:var(--good);border-radius:12px;padding:8px 12px;font-size:14px;font-weight:600;justify-self:end;max-width:88%}
+.hint{border-top:1px dashed var(--line);padding-top:6px;font-size:14px}
+.talkbar{display:flex;gap:8px;align-items:flex-end}
+.talkbar textarea{flex:1;min-width:0;font:inherit;font-size:16px;font-family:var(--f-jp);resize:none;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);color:var(--fg);max-height:120px}
+.mic.small{width:46px;height:46px;flex:none}
+.mic.small svg{width:22px;height:22px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 @media (max-width:360px){.today{grid-template-columns:1fr;justify-items:center}.today-info{justify-items:center;text-align:center}}
 </style>
@@ -696,9 +716,7 @@ const COURSE = [
     { id:"n4-kanji", kind:"kanji", title:"Kanji N4", glyph:"字", soon:true },
     { id:"n4-gram", kind:"grammar", title:"Tata bahasa N4", glyph:"文", soon:true }
   ]},
-  { id:"talk", title:"Percakapan", sub:"Bicara dengan partner AI", lessons:[
-    { id:"talk-1", kind:"talk", title:"Perkenalan diri", glyph:"話", soon:true }
-  ]}
+
 ];
 const LESSONS = COURSE.flatMap(u=>u.lessons.map(l=>({...l,unit:u.id})));
 const ITEMS = {}; LESSONS.forEach(l=>(l.items||[]).forEach(it=>ITEMS[it.id]={...it,kind:l.kind,lesson:l.id}));
@@ -849,14 +867,14 @@ function planInfo(){
    TAMPILAN
    ============================================================ */
 let tab="home"; const openUnits=new Set();
-const TABS=[["home","家","Beranda"],["learn","学","Pelajaran"],["review","復","Ulangi"],["stats","績","Progres"]];
+const TABS=[["home","家","Beranda"],["learn","学","Pelajaran"],["talk","話","Bicara"],["review","復","Ulangi"],["stats","績","Progres"]];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const WD=[["Min","日"],["Sen","月"],["Sel","火"],["Rab","水"],["Kam","木"],["Jum","金"],["Sab","土"]];
 
 function render(){
   document.getElementById("tabs").innerHTML=TABS.map(([id,k,l])=>`<button class="tab" data-tab="${id}" ${tab===id?'aria-current="page"':""}><span class="k">${k}</span>${l}</button>`).join("");
   const app=document.getElementById("app");
-  app.innerHTML=`<div class="wrap">${({home:viewHome,learn:viewLearn,review:viewReview,stats:viewStats})[tab]()}<p class="syncnote">${cloudState==="akun"?"Progres tersimpan di akun kamu":"Progres tersimpan di perangkat ini"}</p></div>`;
+  app.innerHTML=`<div class="wrap">${({home:viewHome,learn:viewLearn,talk:viewTalk,review:viewReview,stats:viewStats})[tab]()}<p class="syncnote">${cloudState==="akun"?"Progres tersimpan di akun kamu":"Progres tersimpan di perangkat ini"}</p></div>`;
   updateClock();
 }
 
@@ -1114,6 +1132,12 @@ function recordAnswer(item,ok){
   else if(!ok&&S.srs[item.id]) srsAnswer(item.id,false);
   ok?Q.right++:Q.wrong++; save();
 }
+function finishTalk(){
+  const turns=Q.msgs.filter(m=>m.role==="user").length;
+  if(turns){ const d=dayRec(todayKey()); d.talk=(d.talk||0)+1; save(true); }
+  const fixes=Q.msgs.filter(m=>m.role==="assistant"&&m.data.correction&&m.data.correction.right).map(m=>m.data.correction);
+  Q.summary={turns,fixes}; Q.done=turns?Math.round((turns-fixes.length)/turns*100):0; renderLayer();
+}
 function finish(){
   const total=Q.right+Q.wrong, sTotal=Q.sRight+Q.sWrong;
   const pct=total?Math.round(Q.right/total*100):sTotal?Math.round(Q.sRight/sTotal*100):0;
@@ -1154,14 +1178,22 @@ function tableRows(rows){ // susun seperti tabel gojūon: や _ ゆ _ よ, わ _
 function renderLayer(){
   const el=document.getElementById("layer"); if(!Q){el.hidden=true;return;}
   el.className="layer";
-  const n=Q.steps.length, prog=Q.mode==="table"||Q.done!=null?100:Math.round(Q.i/n*100);
+  const n=Q.steps.length, prog=Q.mode==="talk"?Math.min(100,Q.msgs.filter(m=>m.role==="user").length*10):Q.mode==="table"||Q.done!=null?100:Math.round(Q.i/n*100);
   let body="",foot="";
-  if(Q.mode==="table"){
+  if(Q.mode==="talk"&&Q.done==null){
+    body=talkBody(); foot=talkFoot();
+  } else if(Q.mode==="table"){
     body=`<p class="muted" style="margin:0">Ketuk huruf untuk mendengar bunyinya.</p><div class="ktable">${tableRows(Q.rows).map(r=>`<div class="krow">${r.map(it=>!it?`<span></span>`:`<button class="kcell" data-say="${esc(it.jp)}"><span class="jp">${it.jp}</span><small>${esc(it.romaji)}</small></button>`).join("")}</div>`).join("")}</div>`;
     foot=`<button class="btn primary block" data-act="close">Tutup</button>`;
   } else if(Q.done!=null){
     const msg=Q.done>=90?"Hebat! すごい!":Q.done>=60?"Bagus, terus latihan.":"Tidak apa-apa, ulangi sekali lagi ya.";
     const parts=[]; if(Q.right+Q.wrong) parts.push(`Kuis: ${Q.right} benar · ${Q.wrong} salah`); if(Q.sRight+Q.sWrong) parts.push(`Bicara: ${Q.sRight} dari ${Q.sRight+Q.sWrong} langsung tepat`);
+    if(Q.mode==="talk"){
+      const {turns,fixes}=Q.summary;
+      body=`<div class="result"><div class="hanko">話</div><h2>${turns} kali kamu berbicara</h2><p class="muted" style="margin:0">${fixes.length?`${fixes.length} koreksi untuk dipelajari:`:"Tidak ada koreksi. よくできました!"}</p></div>
+      ${fixes.map(f=>`<div class="corr"><div>${f.wrong?`<s>${esc(f.wrong)}</s> → `:""}<b class="jp">${esc(f.right)}</b></div><div>${esc(f.explain||"")}</div></div>`).join("")}`;
+      foot=`<div style="display:grid;gap:10px"><button class="btn block" data-act="talk" data-scene="${Q.scene.id}">Mulai lagi</button><button class="btn primary block" data-act="close">Selesai</button></div>`;
+    } else
     body=`<div class="result"><div class="hanko">${Q.done>=60?"済":"復"}</div><div class="score num">${Q.done}%</div><h2>${msg}</h2>${parts.map(p=>`<p class="muted" style="margin:0">${p}</p>`).join("")}${Q.wrong?`<p class="muted" style="margin:0">Jawaban kuis yang salah otomatis masuk menu Ulangi.</p>`:""}</div>`;
     const again=Q.mode==="lesson"?`<button class="btn block" data-act="again">Ulangi pelajaran ini</button>`:Q.mode==="srs"?(srsDue().length?`<button class="btn block" data-act="srs">Lanjut kartu berikutnya (${srsDue().length})</button>`:""):Q.mode==="speak"?`<button class="btn block" data-act="again-speak">Latihan bicara lagi</button>`:`<button class="btn block" data-act="again-review">Latihan lagi</button>`;
     foot=`<div style="display:grid;gap:10px">${again}<button class="btn primary block" data-act="close">Selesai</button></div>`;
@@ -1213,6 +1245,147 @@ function renderLayer(){
 }
 
 /* ============================================================
+   PERCAKAPAN DENGAN AI — partner bahasa Jepang yang mengoreksi dalam bahasa Indonesia
+   ============================================================ */
+const SCENES=[
+  {id:"intro",jp:"自己紹介",title:"Perkenalan diri",desc:"Nama, asal, pekerjaan, hobi",role:"teman baru di acara pertukaran bahasa di Tokyo"},
+  {id:"resto",jp:"レストラン",title:"Di restoran",desc:"Memesan makanan dan minuman",role:"pelayan restoran di Tokyo; Rinji adalah tamu"},
+  {id:"shop",jp:"買い物",title:"Belanja",desc:"Menanyakan harga dan membeli",role:"penjaga toko kelontong (konbini) atau toko baju"},
+  {id:"road",jp:"道案内",title:"Menanyakan jalan",desc:"Mencari stasiun dan tempat",role:"orang yang lewat di dekat stasiun"},
+  {id:"daily",jp:"毎日の生活",title:"Kegiatan sehari-hari",desc:"Rutinitas, akhir pekan, rencana",role:"teman kantor yang ramah"},
+  {id:"free",jp:"自由会話",title:"Ngobrol bebas",desc:"Topik apa saja yang kamu mau",role:"teman orang Jepang yang sabar"}
+];
+let talkLevel="N5", AI=null, aiChecked=false, aiSource="";
+const KEY_LS="nihongo-harian-apikey";
+const getKey=()=>{try{return localStorage.getItem(KEY_LS)||"";}catch(e){return "";}};
+/* Versi GitHub: memanggil Claude API langsung dari HP dengan API key milik Rinji sendiri (tersimpan hanya di HP). */
+const TALK_SCHEMA={type:"object",additionalProperties:false,required:["jp","kana","id","correction","praise","hint"],properties:{
+  jp:{type:"string"},kana:{type:"string"},id:{type:"string"},praise:{type:"string"},hint:{type:"string"},
+  correction:{anyOf:[{type:"null"},{type:"object",additionalProperties:false,required:["wrong","right","explain"],properties:{wrong:{type:"string"},right:{type:"string"},explain:{type:"string"}}}]}}};
+function apiAI(key){
+  let clientP=null;
+  const client=()=>clientP||(clientP=import("https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.135.0/+esm").then(m=>new (m.default||m.Anthropic)({apiKey:key,dangerouslyAllowBrowser:true})));
+  return {json:async turns=>{
+    let c; try{ c=await client(); }catch(e){ throw {code:"sdk_load"}; }
+    try{
+      const res=await c.beta.messages.create({
+        model:"claude-opus-5-5", max_tokens:2000,
+        betas:["server-side-fallback-2026-07-01"], fallbacks:"default",
+        output_config:{effort:"low",format:{type:"json_schema",schema:TALK_SCHEMA}},
+        system:turns[0].content, messages:turns.slice(1)
+      });
+      if(res.stop_reason==="refusal") throw {code:"refused"};
+      const txt=(res.content.find(b=>b.type==="text")||{}).text||"";
+      return JSON.parse(txt);
+    }catch(e){
+      if(e&&e.code) throw e;
+      const st=e&&e.status; throw {code:st===401?"bad_key":st===429?"rate_limited":st===400&&/credit/i.test(e.message||"")?"no_credit":"api_error",detail:e&&e.message};
+    }
+  }};
+}
+function setupAI(){ const k=getKey(); if(!AI&&k){ AI=apiAI(k); aiSource="api"; } }
+(async()=>{ try{ if(window.claude?.use){ AI=await claude.use("sample"); if(AI) aiSource="claude"; } }catch(e){} setupAI(); aiChecked=true; if(tab==="talk") render(); })();
+function aiAvailable(){ return !!AI; }
+
+function viewTalk(){
+  const sessions=Object.values(S.days).reduce((a,d)=>a+(d.talk||0),0);
+  const head=`<header><div class="eyebrow">Latihan percakapan</div><h1>Bicara</h1></header>`;
+  if(!aiAvailable()){
+    if(!aiChecked) return head+`<section class="card"><p class="muted" style="margin:0">Menyiapkan partner AI…</p></section>`;
+    return head+`<section class="card" style="display:grid;gap:10px"><h2>Hubungkan partner AI</h2>
+    <p style="margin:0">Di versi ini, AI dipanggil langsung dari HP-mu memakai API key Claude milikmu sendiri. Biayanya dipotong dari saldo akun API-mu.</p>
+    <ol style="margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px">
+      <li>Buka <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>, masuk, lalu isi saldo (Billing).</li>
+      <li>Buat API key baru, lalu salin.</li>
+      <li>Tempel di bawah dan tekan Simpan. Key hanya tersimpan di HP ini.</li></ol>
+    <form id="keyForm" class="talkbar"><input id="keyInput" type="password" autocomplete="off" placeholder="sk-ant-…" style="flex:1;min-width:0;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg)"><button class="btn primary" type="submit">Simpan</button></form>
+    <p class="muted" style="margin:0;font-size:13px">Tanpa API key, pakai versi claude.ai dari aplikasi ini (gratis, lewat paket Claude-mu).</p></section>`;
+  }
+  return head+`<section class="card" style="display:grid;gap:10px">
+    <p style="margin:0">Pilih situasi. Partner AI berbicara bahasa Jepang seperti penutur asli dan mengoreksi kesalahanmu dalam bahasa Indonesia.</p>
+    <div class="row" style="flex-wrap:wrap;gap:8px"><span class="muted" style="font-size:13px">Tingkat</span>${["N5","N4"].map(l=>`<button class="chip ${talkLevel===l?"good":""}" data-act="level" data-level="${l}" aria-pressed="${talkLevel===l}">${l}</button>`).join("")}</div>
+    <p class="muted" style="margin:0;font-size:13px">${SR&&!micBlocked?"Tekan tombol mikrofon untuk bicara, atau ketik.":"Untuk bicara: ketuk kolom ketik, lalu tekan ikon mikrofon di keyboard HP (Gboard), dan ucapkan dalam bahasa Jepang. Pasang bahasa Jepang di Gboard lewat Setelan Gboard → Bahasa."}</p>
+  </section>
+  <div class="scenes">${SCENES.map(sc=>`<button class="scene" data-act="talk" data-scene="${sc.id}"><span class="jp">${sc.jp}</span><b>${esc(sc.title)}</b><span class="muted">${esc(sc.desc)}</span></button>`).join("")}</div>
+  ${sessions?`<p class="muted" style="margin:0;text-align:center;font-size:13px">${sessions} percakapan sudah kamu selesaikan</p>`:""}
+  ${aiSource==="api"?`<p class="muted" style="margin:0;text-align:center;font-size:13px">Memakai API key di HP ini · <button class="linkbtn" data-act="key-remove">Hapus API key</button></p>`:""}`;
+}
+
+function talkInstructions(sc){
+  return `Kamu adalah partner latihan percakapan bahasa Jepang untuk Rinji, orang Indonesia yang belajar dari nol dengan target JLPT N4. Peranmu: ${sc.role}. Situasi: ${sc.title} (${sc.desc}).
+
+Aturan:
+- Bicaralah seperti penutur asli Jepang yang ramah dan natural, tetapi sesuaikan dengan tingkat ${talkLevel}: ${talkLevel==="N5"?"kalimat pendek, bentuk です/ます, kosakata dasar N5, kanji sedikit":"bentuk sopan dan sesekali bentuk biasa, kosakata dan tata bahasa sampai N4"}.
+- Satu giliran berisi 1–2 kalimat saja, lalu ajukan pertanyaan atau beri kesempatan Rinji menjawab supaya percakapan berlanjut.
+- Periksa pesan terakhir Rinji: tata bahasa, kosakata, partikel, bentuk sopan, dan kewajaran. Jika ada kesalahan, beri versi yang benar dan penjelasan singkat dalam bahasa Indonesia yang mudah dipahami pemula. Jika pesannya dalam romaji, beri tahu tulisan kananya. Jika ia menulis dalam bahasa Indonesia, bantu ia mengatakannya dalam bahasa Jepang lalu lanjutkan percakapan.
+- Teks dari Rinji mungkin hasil pengenalan suara, jadi abaikan salah ketik kecil yang jelas berasal dari pengenal suara.
+- Jangan keluar dari peran kecuali untuk koreksi.
+
+Jawab HANYA dengan satu objek JSON, tanpa teks lain:
+{"jp":"jawabanmu dalam bahasa Jepang","kana":"jawaban yang sama, seluruhnya hiragana/katakana","id":"terjemahan bahasa Indonesia","correction":null atau {"wrong":"bagian Rinji yang salah","right":"versi yang benar dalam bahasa Jepang","explain":"penjelasan singkat dalam bahasa Indonesia"},"praise":"pujian singkat dalam bahasa Indonesia bila jawaban Rinji sudah benar, atau string kosong","hint":"contoh jawaban sederhana yang bisa Rinji ucapkan berikutnya, dalam bahasa Jepang + arti dalam kurung"}`;
+}
+function startTalk(id){
+  const sc=SCENES.find(x=>x.id===id); if(!sc||!AI) return;
+  Q=newQ({mode:"talk",lesson:{title:sc.jp+" · "+sc.title},scene:sc,msgs:[],busy:false,steps:[]});
+  openLayer(); talkSend(null);
+}
+function talkPayload(){
+  const turns=[{role:"user",content:talkInstructions(Q.scene)}];
+  const hist=Q.msgs.slice(-20); // jaga agar tetap ringkas
+  if(!hist.length||hist[0].role!=="user") turns.push({role:"user",content:"(Mulai percakapan: sapa Rinji dan buka situasinya. correction harus null.)"});
+  hist.forEach(m=>turns.push({role:m.role,content:m.role==="user"?m.text:JSON.stringify(m.data)}));
+  return turns;
+}
+async function talkSend(text){
+  if(!Q||Q.mode!=="talk"||Q.busy) return;
+  if(text!=null){ text=text.trim(); if(!text) return; Q.msgs.push({role:"user",text}); }
+  Q.busy=true; Q.err=null; renderLayer(); scrollChat();
+  try{
+    const data=await AI.json(talkPayload(),{cache:false});
+    if(!data||typeof data.jp!=="string") throw {code:"invalid_json"};
+    Q.msgs.push({role:"assistant",data});
+    if(text!=null){ if(data.correction) Q.wrong++; else Q.right++; }
+    speak(data.jp);
+  }catch(e){
+    Q.err=({rate_limited:"Batas pemakaian Claude tercapai. Coba lagi nanti.",not_granted:"Izin untuk memakai Claude belum diberikan. Buka menu izin halaman ini, lalu izinkan.",sampling_disabled:"Fitur AI dimatikan untuk akun ini.",bad_key:"API key tidak valid. Hapus lalu masukkan ulang di tab Bicara.",no_credit:"Saldo akun API habis. Isi saldo di console.anthropic.com.",sdk_load:"Gagal memuat penghubung AI. Periksa internet lalu coba lagi.",refused:"AI menolak menjawab pesan ini. Coba kalimat lain.",invalid_json:"Jawaban AI tidak terbaca. Tekan Kirim ulang."})[e&&e.code]||"Gagal menghubungi AI. Periksa internet, lalu tekan Kirim ulang.";
+    Q.retry=text;
+    if(text!=null) Q.msgs.pop();
+  }
+  Q.busy=false; renderLayer(); scrollChat();
+}
+function scrollChat(){const b=document.querySelector(".layer-body"); if(b) b.scrollTop=b.scrollHeight;}
+function talkListen(){
+  if(!SR||micBlocked||Q.busy) return;
+  try{rec&&rec.abort();}catch(e){}
+  const r=new SR(); rec=r; r.lang="ja-JP"; r.interimResults=true; r.continuous=false;
+  const box=document.getElementById("talkInput"); Q.listening=true; renderMicBtn();
+  r.onresult=ev=>{ const t=[...ev.results].map(x=>x[0].transcript).join(""); if(box) box.value=t; };
+  r.onerror=ev=>{ if(ev.error==="not-allowed"&&!onGithub()) micBlocked=true; if(ev.error!=="aborted"&&ev.error!=="no-speech") toast(micErrText(ev.error)); };
+  r.onend=()=>{ Q.listening=false; renderMicBtn(); const v=box&&box.value.trim(); if(v){ box.value=""; talkSend(v); } };
+  try{r.start();}catch(e){Q.listening=false; renderMicBtn();}
+}
+function renderMicBtn(){const b=document.getElementById("talkMic"); if(b) b.classList.toggle("on",!!Q?.listening);}
+function talkBody(){
+  const bubbles=Q.msgs.map((m,i)=>{
+    if(m.role==="user") return `<div class="bub me">${esc(m.text)}</div>`;
+    const d=m.data, last=i===Q.msgs.length-1;
+    const corr=d.correction&&d.correction.right?`<div class="corr"><span class="eyebrow" style="color:var(--bad)">Koreksi</span><div>${d.correction.wrong?`<s>${esc(d.correction.wrong)}</s> → `:""}<b class="jp">${esc(d.correction.right)}</b></div><div>${esc(d.correction.explain||"")}</div></div>`:d.praise?`<div class="praise">${esc(d.praise)}</div>`:"";
+    return `${corr}<div class="bub ai"><div class="jp" style="font-size:18px;font-weight:700">${esc(d.jp)}</div>${d.kana&&d.kana!==d.jp?`<div class="muted jp" style="font-size:13px">${esc(d.kana)}</div>`:""}
+      <details ${last?"":""}><summary>Arti</summary>${esc(d.id||"")}</details>
+      <div class="row" style="gap:8px"><button class="speak" data-say="${esc(d.jp)}">Dengar ▸</button></div>
+      ${last&&d.hint?`<div class="hint"><span class="eyebrow">Contoh jawaban</span><div class="jp">${esc(d.hint)}</div></div>`:""}</div>`;
+  }).join("");
+  return `<div class="chat">${bubbles}${Q.busy?`<div class="bub ai typing">…</div>`:""}${Q.err?`<div class="feedback wrong">${esc(Q.err)} <button class="btn" data-act="talk-retry" style="margin-top:8px">Kirim ulang</button></div>`:""}</div>`;
+}
+function talkFoot(){
+  const canMic=SR&&!micBlocked;
+  return `<form class="talkbar" id="talkForm">${canMic?`<button type="button" class="mic small" id="talkMic" data-act="talk-mic" aria-label="Bicara">${MIC_SVG}</button>`:""}
+    <textarea id="talkInput" rows="1" lang="ja" placeholder="${canMic?"Bicara atau ketik…":"Ketik, atau pakai mikrofon keyboard…"}" ${Q.busy?"disabled":""}></textarea>
+    <button class="btn primary" type="submit" ${Q.busy?"disabled":""}>Kirim</button></form>
+    <button class="btn block" data-act="talk-end" style="margin-top:8px">Selesai percakapan</button>`;
+}
+
+/* ============================================================
    INTERAKSI
    ============================================================ */
 function toast(msg){const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,3500);}
@@ -1232,6 +1405,12 @@ document.addEventListener("click",e=>{
   else if(act==="review-all"){startReview(true);}
   else if(act==="next"&&Q){try{rec&&rec.abort();}catch(e){} Q.answered=null; Q.i++; if(Q.i>=Q.steps.length) finish(); else renderLayer();}
   else if(act==="mic-test"){micTest();}
+  else if(act==="talk"){ const id=b.dataset.scene; if(Q) {Q=null;} if(!inLayer) startTalk(id); else {startTalk(id);} }
+  else if(act==="key-remove"){ try{localStorage.removeItem(KEY_LS);}catch(e){} if(aiSource==="api"){AI=null; aiSource="";} render(); toast("API key dihapus dari HP ini."); }
+  else if(act==="level"){ talkLevel=b.dataset.level; render(); }
+  else if(act==="talk-mic"){ talkListen(); }
+  else if(act==="talk-end"&&Q){ try{rec&&rec.abort();}catch(e){} finishTalk(); }
+  else if(act==="talk-retry"&&Q){ const t=Q.retry; Q.err=null; talkSend(t); }
   else if(act==="tts-test"){speak("こんにちは"); setTimeout(()=>{const el=document.getElementById("ttsInfo"); if(el&&tab==="stats") render();},1500);}
   else if(act==="listen"&&Q){listen(Q.steps[Q.i]);}
   else if(act==="skip-speak"&&Q){Q.steps=Q.steps.filter((s,i)=>i<Q.i||s.type!=="speak"); if(Q.i>=Q.steps.length) finish(); else renderLayer();}
@@ -1242,6 +1421,9 @@ document.addEventListener("click",e=>{
   else if(act==="again"&&Q){const id=Q.lesson.id; Q=null; startLesson(id);}
   else if(act==="again-review"){Q=null; startReview(weakItems().length===0);}
 });
+document.addEventListener("submit",e=>{ if(e.target.id==="keyForm"){ e.preventDefault(); const v=document.getElementById("keyInput").value.trim(); if(!/^sk-ant-/.test(v)){toast("API key biasanya diawali sk-ant-. Periksa lagi."); return;} try{localStorage.setItem(KEY_LS,v);}catch(err){} setupAI(); render(); toast("API key tersimpan di HP ini."); } });
+document.addEventListener("submit",e=>{ if(e.target.id==="talkForm"){ e.preventDefault(); const t=document.getElementById("talkInput"); const v=t.value; t.value=""; talkSend(v);} });
+document.addEventListener("keydown",e=>{ if(e.target.id==="talkInput"&&e.key==="Enter"&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); e.target.form.requestSubmit(); } });
 document.addEventListener("toggle",e=>{const u=e.target.dataset?.unit; if(!u) return; e.target.open?openUnits.add(u):openUnits.delete(u);},true);
 document.addEventListener("change",e=>{ if(e.target.id==="goalSel"){S.goalMin=+e.target.value; save(true); render();} });
 document.addEventListener("visibilitychange",()=>{lastTick=Date.now();});

@@ -1,6 +1,6 @@
 # Nihongo Harian
 
-Aplikasi belajar bahasa Jepang dari nol sampai JLPT N4: timer 30 menit per hari, streak, grafik progres, hiragana & katakana dengan suara, latihan bicara lewat mikrofon, kurikulum N5 (kosakata, kanji, tata bahasa) dengan kartu SRS, rencana mingguan, dan menu Ulangi.
+Aplikasi belajar bahasa Jepang dari nol sampai JLPT N4: timer 30 menit per hari, streak, grafik progres, hiragana & katakana dengan suara, latihan bicara lewat mikrofon, kurikulum N5 (kosakata, kanji, tata bahasa) dengan kartu SRS, rencana mingguan, menu Ulangi, dan percakapan dengan partner AI (Claude) yang mengoreksi dalam bahasa Indonesia.
 
 Buka di HP: https://rinji0906.github.io/nihongo-harian/ lalu pilih **Tambahkan ke layar utama** di menu Chrome.
 
@@ -11,3 +11,6 @@ Buka di HP: https://rinji0906.github.io/nihongo-harian/ lalu pilih **Tambahkan k
 - `manifest.webmanifest`, `sw.js`, `icon.svg`: agar bisa dipasang dan dipakai offline. Naikkan nama cache di `sw.js` setiap rilis.
 
 Progres disimpan di perangkat (localStorage).
+
+## Percakapan AI
+Di versi claude.ai, partner AI memakai paket Claude pengguna. Di GitHub Pages, AI dipanggil langsung dari browser memakai API key milik pengguna (disimpan hanya di localStorage HP) dengan model `claude-opus-5-5`.
